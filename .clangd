@@ -1,0 +1,10 @@
+CompileFlags:
+  Add: [
+    "-I/home/barbarian/.platformio/packages/framework-arduinoespressif32/cores/esp32",
+    "-I/home/barbarian/.platformio/packages/framework-arduinoespressif32/variants/esp32",
+    "-I/home/barbarian/.platformio/packages/framework-arduinoespressif32/libraries",
+    "-I/home/barbarian/.platformio/packages/framework-espidf/components",
+    "-I/home/barbarian/.platformio/packages/toolchain-xtensa-esp32/include",
+    "-I/home/barbarian/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include"
+  ]
+
