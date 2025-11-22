@@ -84,24 +84,21 @@ bool init_bluetooth() {
 bool init_emmi() {} // why ??
 
 bool init_sensors() {
-	bool errorless = 1;
-	// if (i2c_init() != 0) { // if i2c failed to start
+
+	if (bme680.init() != 0) { // if BME680 failed to start
+		send_error(Sensor_failed_to_start);
+		Serial.println("BME680 not found...");
+		return false;
+	}
+	// if (init_sensor2() != 0) { // if Multichannel Gas Sensor failed to start
 	//	send_error(Sensor_failed_to_start);
-	//	errorless = 0;
+	//	return false;
 	// }
-	// if (init_sensor1() != 0) { // if i2c failed to start
+	// if (init_sensor3() != 0) { // if SGP41 failed to start
 	//	send_error(Sensor_failed_to_start);
-	//	errorless = 0;
+	//	return false;
 	// }
-	// if (init_sensor2() != 0) { // if i2c failed to start
-	//	send_error(Sensor_failed_to_start);
-	//	errorless = 0;
-	// }
-	// if (init_sensor3() != 0) { // if i2c failed to start
-	//	send_error(Sensor_failed_to_start);
-	//	errorless = 0;
-	// }
-	return errorless;
+	return true;
 }
 bool send_error(error_codes_t) {
 	// GSM_send(the error);
