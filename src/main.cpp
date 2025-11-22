@@ -5,6 +5,7 @@
 #include "Multichannel_Gas_GMXXX.h" // Grove Multichannel Gas Sensor v2
 #include "seeed_bme680.h"           // Seeed BME680
 #include "SensirionI2CSgp41.h"      // Seeed SGP41
+#include <ArduinoBLE.h>        	    // Arduino BLE library
 // Simple USART communication example for Arduino Nano ESP32
 
 // Constants
@@ -29,18 +30,22 @@ typedef enum {
 	Emmiter_power_critical
 } error_codes_t;
 
+// Global variables
+uint8_t emitterBytes[8] = {0, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
+
 // Function prototypes
 // Function prototypes: Init functions
 void init_GSM();		// innitialises the communication with server
 bool init_bluetooth();		// innitialises the bluetooth module
 bool init_sensors();		// starts the sensors
-bool init_emmi();		// starts the emmiter
+bool init_emmi();		// starts the emmiter (why ??)
 bool send_error(error_codes_t); // sends the error code to server
 
 // Function prototypes: Main functions
 void sensor_readings(); 	// reads data from sensors
 
 void setup() {
+	// set up leds before inits so we can indicate if any of them failed
 	init_sensors();
 	init_bluetooth();
 	init_GSM();
@@ -48,11 +53,11 @@ void setup() {
 
 // Main loop
 void loop() {
-
-	// do stuff
+	// make sure time between each reading is at least 1 second
 	sensor_readings();
-	// make sure delaye before next reading is at least 1 second
 
+	// wrap every other action in a timer-activated block (active after 30 minutes of collecting readings to preheat gas sensors)
+	
 }
 
 // Functions Definitions
@@ -65,10 +70,18 @@ void sensor_readings() {
 void init_GSM() {}
 
 bool init_bluetooth() {
+	
+	// initialize the Bluetooth® Low Energy hardware
+	if (!BLE.begin()) {
+		Serial.println("Failed to initialize BLE!");
+		return false;
+	}
 
+	// start scanning for peripherals
+	BLE.scanForUuid("19b10000-e8f2-537e-4f6c-d104768a1214");
 	return true;
 }
-bool init_emmi() {}
+bool init_emmi() {} // why ??
 
 bool init_sensors() {
 	bool errorless = 1;
