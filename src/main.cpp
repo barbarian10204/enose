@@ -9,9 +9,9 @@
 // Simple USART communication example for Arduino Nano ESP32
 
 // Constants
-
 #define HOST_NAME "Name"  // The server address
 #define PORT 1234 		  // The port number for sending data with gsm
+#define PERIPHERAL_CHARACTERISTIC "19b10000-e8f2-537e-4f6c-d104768a1214" // The service UUID for the emitter device
 
 // Constructors
 // Constructors: GSM objects
@@ -31,7 +31,7 @@ typedef enum {
 } error_codes_t;
 
 // Global variables
-uint8_t emitterBytes[8] = {0, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
+uint8_t emitterBytes[8] = {255, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
 
 // Function prototypes
 // Function prototypes: Init functions
@@ -41,9 +41,9 @@ bool init_sensors();			// starts the sensors
 bool send_error(error_codes_t); // sends the error code to server
 
 // Function prototypes: Main functions
-void sensor_readings(); 				// reads data from sensors
-bool bluetooth_to_emitter();		// sends control bytes to emitter over bluetooth
-bool controlEmitters(BLEDevice peripheral);		// controls the emitter over bluetooth
+void sensor_readings(); 						// reads data from sensors
+bool bluetooth_to_emitter();					// attempts to discover emitter device over bluetooth
+bool controlEmitters(BLEDevice peripheral);		// connects to device and sends control bytes to emitter over bluetooth
 
 void setup() {
 	// set up leds before inits so we can indicate if any of them failed
@@ -55,14 +55,14 @@ void setup() {
 // Main loop
 void loop() {
 	// make sure time between each reading is at least 1 second
-	sensor_readings();
+	// sensor_readings();
 
 	// wrap every other action in a timer-activated block (active after 30 minutes of collecting readings to preheat gas sensors)
 
 	if (bluetooth_to_emitter()) {
-		Serial.println("Emitter control successful");
+		Serial.println("Emitters control successful");
 	} else {
-		Serial.println("No emitter controlled");
+		Serial.println("No emitters controlled");
 	}
 }
 
@@ -98,7 +98,7 @@ bool bluetooth_to_emitter() {
 			return true;
 		} else {
 			Serial.println("Peripheral disconnected");
-			BLE.scanForUuid("19b10000-e8f2-537e-4f6c-d104768a1214"); // restart scanning
+			BLE.scanForUuid(PERIPHERAL_CHARACTERISTIC); // restart scanning
 			return false;
 		}
 	}
@@ -106,38 +106,38 @@ bool bluetooth_to_emitter() {
 }
 
 bool controlEmitters(BLEDevice peripheral){
-// connect to the peripheral
-  Serial.println("Connecting ...");
+	// connect to the peripheral
+	Serial.println("Connecting ...");
 
-  if (peripheral.connect()) {
-    Serial.println("Connected");
-  } else {
-    Serial.println("Failed to connect!");
-    return false;
-  }
+	if (peripheral.connect()) {
+		Serial.println("Connected");
+	} else {
+		Serial.println("Failed to connect!");
+		return false;
+	}
 
-  // discover peripheral attributes
-  Serial.println("Discovering attributes ...");
-  if (peripheral.discoverAttributes()) {
-    Serial.println("Attributes discovered");
-  } else {
-    Serial.println("Attribute discovery failed!");
-    peripheral.disconnect();
-    return;
-  }
+	// discover peripheral attributes
+	Serial.println("Discovering attributes ...");
+	if (peripheral.discoverAttributes()) {
+		Serial.println("Attributes discovered");
+	} else {
+		Serial.println("Attribute discovery failed!");
+		peripheral.disconnect();
+		return false;
+	}
 
-  // retrieve the Emitter characteristic
-  BLECharacteristic emittersCharacteristic = peripheral.characteristic("19b10001-e8f2-537e-4f6c-d104768a1214");
+	// retrieve the Emitter characteristic
+	BLECharacteristic emittersCharacteristic = peripheral.characteristic(PERIPHERAL_CHARACTERISTIC);
 
-  if (!emittersCharacteristic) {
-    Serial.println("Peripheral does not have Emitter characteristic!");
-    peripheral.disconnect();
-    return false;
-  } else if (!emittersCharacteristic.canWrite()) {
-    Serial.println("Peripheral does not have a writable Emitter characteristic!");
-    peripheral.disconnect();
-    return false;
-  }
+	if (!emittersCharacteristic) {
+		Serial.println("Peripheral does not have Emitter characteristic!");
+		peripheral.disconnect();
+		return false;
+	} else if (!emittersCharacteristic.canWrite()) {
+		Serial.println("Peripheral does not have a writable Emitter characteristic!");
+		peripheral.disconnect();
+		return false;
+	}
 
   	if (peripheral.connected()) {
 		// while the peripheral is connected
@@ -157,6 +157,7 @@ bool controlEmitters(BLEDevice peripheral){
 		Serial.println("Write successful");
 		} else {
 		Serial.println("Write failed");
+		return false;
 		}
 		return true;
 	}
