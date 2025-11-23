@@ -11,7 +11,8 @@
 // Constants
 #define HOST_NAME "Name"  // The server address
 #define PORT 1234 		  // The port number for sending data with gsm
-#define PERIPHERAL_CHARACTERISTIC "19b10000-e8f2-537e-4f6c-d104768a1214" // The service UUID for the emitter device
+#define CHARACTERISTIC_UUID "19b10001-e8f2-537e-4f6c-d104768a1214" // The characteristic UUID for the emitter device
+#define SERVICE_UUID "19b10000-e8f2-537e-4f6c-d104768a1214"    // The service UUID for the emitter control
 
 // Constructors
 // Constructors: GSM objects
@@ -32,6 +33,9 @@ typedef enum {
 
 // Global variables
 uint8_t emitterBytes[8] = {255, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
+bool peripheral_Flag = false; // flag to indicate if peripheral is connected
+BLECharacteristic emittersCharacteristic;
+BLEDevice peripheral;
 
 // Function prototypes
 // Function prototypes: Init functions
@@ -60,10 +64,11 @@ void loop() {
 	// wrap every other action in a timer-activated block (active after 30 minutes of collecting readings to preheat gas sensors)
 
 	if (bluetooth_to_emitter()) {
-		Serial.println("Emitters control successful");
+		Serial.println("good");
 	} else {
-		Serial.println("No emitters controlled");
+		Serial.println("bad");
 	}
+	delay(100);
 }
 
 // Functions Definitions
@@ -74,31 +79,38 @@ void sensor_readings() {
 
 bool bluetooth_to_emitter() {
 	// check if a peripheral has been discovered
-	BLEDevice peripheral = BLE.available();
+	
+	if (!peripheral_Flag){
+		peripheral = BLE.available();
+	}
 
-	if (peripheral) {
-		// discovered a peripheral, print out address, local name, and advertised service
-		Serial.print("Found ");
-		Serial.print(peripheral.address());
-		Serial.print(" '");
-		Serial.print(peripheral.localName());
-		Serial.print("' ");
-		Serial.print(peripheral.advertisedServiceUuid());
-		Serial.println();
+	if (peripheral || peripheral_Flag) {
+		if (!peripheral_Flag) {
+			// discovered a peripheral, print out address, local name, and advertised service
+			Serial.print("Found ");
+			Serial.print(peripheral.address());
+			Serial.print(" '");
+			Serial.print(peripheral.localName());
+			Serial.print("' ");
+			Serial.print(peripheral.advertisedServiceUuid());
+			Serial.println();
 
-		if (peripheral.localName() != "EmitterDevice") {
-		return false;
+			if (peripheral.localName() != "EmitterDevice") {
+			return false;
+			}
+
+			// stop scanning
+			BLE.stopScan();
 		}
-
-		// stop scanning
-		BLE.stopScan();
-
+		
 		if (controlEmitters(peripheral)) {
 			Serial.println("Emitter control successful");
+			peripheral_Flag = true;
 			return true;
 		} else {
 			Serial.println("Peripheral disconnected");
-			BLE.scanForUuid(PERIPHERAL_CHARACTERISTIC); // restart scanning
+			BLE.scanForUuid(SERVICE_UUID); // restart scanning
+			peripheral_Flag = false;
 			return false;
 		}
 	}
@@ -106,37 +118,40 @@ bool bluetooth_to_emitter() {
 }
 
 bool controlEmitters(BLEDevice peripheral){
-	// connect to the peripheral
-	Serial.println("Connecting ...");
 
-	if (peripheral.connect()) {
-		Serial.println("Connected");
-	} else {
-		Serial.println("Failed to connect!");
-		return false;
-	}
+	if (!peripheral_Flag) {
+		// connect to the peripheral
+		Serial.println("Connecting ...");
 
-	// discover peripheral attributes
-	Serial.println("Discovering attributes ...");
-	if (peripheral.discoverAttributes()) {
-		Serial.println("Attributes discovered");
-	} else {
-		Serial.println("Attribute discovery failed!");
-		peripheral.disconnect();
-		return false;
-	}
+		if (peripheral.connect()) {
+			Serial.println("Connected");
+		} else {
+			Serial.println("Failed to connect!");
+			return false;
+		}
 
-	// retrieve the Emitter characteristic
-	BLECharacteristic emittersCharacteristic = peripheral.characteristic(PERIPHERAL_CHARACTERISTIC);
+		// discover peripheral attributes
+		Serial.println("Discovering attributes ...");
+		if (peripheral.discoverAttributes()) {
+			Serial.println("Attributes discovered");
+		} else {
+			Serial.println("Attribute discovery failed!");
+			peripheral.disconnect();
+			return false;
+		}
 
-	if (!emittersCharacteristic) {
-		Serial.println("Peripheral does not have Emitter characteristic!");
-		peripheral.disconnect();
-		return false;
-	} else if (!emittersCharacteristic.canWrite()) {
-		Serial.println("Peripheral does not have a writable Emitter characteristic!");
-		peripheral.disconnect();
-		return false;
+		// retrieve the Emitter characteristic
+		emittersCharacteristic = peripheral.characteristic(CHARACTERISTIC_UUID);
+
+		if (!emittersCharacteristic) {
+			Serial.println("Peripheral does not have Emitter characteristic!");
+			peripheral.disconnect();
+			return false;
+		} else if (!emittersCharacteristic.canWrite()) {
+			Serial.println("Peripheral does not have a writable Emitter characteristic!");
+			peripheral.disconnect();
+			return false;
+		}
 	}
 
   	if (peripheral.connected()) {
@@ -162,7 +177,7 @@ bool controlEmitters(BLEDevice peripheral){
 		return true;
 	}
 	else {
-		Serial.println("Peripheral disconnected");
+		peripheral_Flag = false;
 		return false;
 	}
 
@@ -181,7 +196,7 @@ bool init_bluetooth() {
 	}
 
 	// start scanning for peripherals
-	BLE.scanForUuid("19b10000-e8f2-537e-4f6c-d104768a1214");
+	BLE.scanForUuid(SERVICE_UUID);
 	return true;
 }
 
