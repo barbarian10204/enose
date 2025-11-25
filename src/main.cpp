@@ -46,7 +46,7 @@ bool send_error(error_codes_t); // sends the error code to server
 
 // Function prototypes: Main functions
 void sensor_readings(); 						// reads data from sensors
-bool bluetooth_to_emitter();					// attempts to discover emitter device over bluetooth
+bool bluetooth_to_emitter();					// Attempts to discover emitter device over bluetooth. If it finds any, it calls controlEmitters to send control bytes. If a device is not found or something fails, it returns false.
 bool controlEmitters(BLEDevice peripheral);		// connects to device and sends control bytes to emitter over bluetooth
 
 void setup() {
@@ -68,7 +68,7 @@ void loop() {
 	} else {
 		Serial.println("bad");
 	}
-	delay(100);
+	delay(100); // Delay for testing purposes, will add a dynamic timer for sensors later
 }
 
 // Functions Definitions
