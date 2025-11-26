@@ -1,18 +1,5 @@
-
-#include <Arduino.h>
-#include <HardwareSerial.h>
-#include <SIM800L.h>
-#include <ArduinoBLE.h>        	    // Arduino BLE library
-#include "Multichannel_Gas_GMXXX.h" // Grove Multichannel Gas Sensor v2
-#include "seeed_bme680.h"           // Seeed BME680
-#include "SensirionI2CSgp41.h"      // Seeed SGP41
+#include "main.h"
 // Simple USART communication example for Arduino Nano ESP32
-
-// Constants
-#define HOST_NAME "Name"  // The server address
-#define PORT 1234 		  // The port number for sending data with gsm
-#define CHARACTERISTIC_UUID "19b10001-e8f2-537e-4f6c-d104768a1214" // The characteristic UUID for the emitter device
-#define SERVICE_UUID "19b10000-e8f2-537e-4f6c-d104768a1214"    // The service UUID for the emitter control
 
 // Constructors
 // Constructors: GSM objects
@@ -23,31 +10,12 @@ SIM800L gsm;
 GAS_GMXXX<TwoWire> gasSensor;
 Seeed_BME680 bme680(uint8_t(0x76));
 SensirionI2CSgp41 sgp41;
-
-typedef enum {
-	Sensor_failed_to_start,
-	Emmiter_not_found,
-	Enose_power_critical,
-	Emmiter_power_critical
-} error_codes_t;
-
 // Global variables
-uint8_t emitterBytes[8] = {255, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
-bool peripheral_Flag = false; // flag to indicate if peripheral is connected
+uint8_t emitterBytes[8] = {
+    255, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
+bool peripheral_Flag = false;  // flag to indicate if peripheral is connected
 BLECharacteristic emittersCharacteristic;
 BLEDevice peripheral;
-
-// Function prototypes
-// Function prototypes: Init functions
-void init_GSM();				// innitialises the communication between GSM and server
-bool init_bluetooth();			// innitialises the bluetooth module
-bool init_sensors();			// starts the sensors
-bool send_error(error_codes_t); // sends the error code to server
-
-// Function prototypes: Main functions
-void sensor_readings(); 						// reads data from sensors
-bool bluetooth_to_emitter();					// Attempts to discover emitter device over bluetooth. If it finds any, it calls controlEmitters to send control bytes. If a device is not found or something fails, it returns false.
-bool controlEmitters(BLEDevice peripheral);		// connects to device and sends control bytes to emitter over bluetooth
 
 void setup() {
 	// set up leds before inits so we can indicate if any of them failed
@@ -61,14 +29,16 @@ void loop() {
 	// make sure time between each reading is at least 1 second
 	// sensor_readings();
 
-	// wrap every other action in a timer-activated block (active after 30 minutes of collecting readings to preheat gas sensors)
+	// wrap every other action in a timer-activated block (active after 30
+	// minutes of collecting readings to preheat gas sensors)
 
 	if (bluetooth_to_emitter()) {
 		Serial.println("good");
 	} else {
 		Serial.println("bad");
 	}
-	delay(100); // Delay for testing purposes, will add a dynamic timer for sensors later
+	delay(100); // Delay for testing purposes, will add a dynamic timer for
+		    // sensors later
 }
 
 // Functions Definitions
@@ -79,14 +49,15 @@ void sensor_readings() {
 
 bool bluetooth_to_emitter() {
 	// check if a peripheral has been discovered
-	
-	if (!peripheral_Flag){
+
+	if (!peripheral_Flag) {
 		peripheral = BLE.available();
 	}
 
 	if (peripheral || peripheral_Flag) {
 		if (!peripheral_Flag) {
-			// discovered a peripheral, print out address, local name, and advertised service
+			// discovered a peripheral, print out address, local
+			// name, and advertised service
 			Serial.print("Found ");
 			Serial.print(peripheral.address());
 			Serial.print(" '");
@@ -96,13 +67,13 @@ bool bluetooth_to_emitter() {
 			Serial.println();
 
 			if (peripheral.localName() != "EmitterDevice") {
-			return false;
+				return false;
 			}
 
 			// stop scanning
 			BLE.stopScan();
 		}
-		
+
 		if (controlEmitters(peripheral)) {
 			Serial.println("Emitter control successful");
 			peripheral_Flag = true;
@@ -114,10 +85,10 @@ bool bluetooth_to_emitter() {
 			return false;
 		}
 	}
-	return false;
+	return false; // shouldn't this be true?
 }
 
-bool controlEmitters(BLEDevice peripheral){
+bool control_emitters(BLEDevice peripheral) {
 
 	if (!peripheral_Flag) {
 		// connect to the peripheral
@@ -127,6 +98,7 @@ bool controlEmitters(BLEDevice peripheral){
 			Serial.println("Connected");
 		} else {
 			Serial.println("Failed to connect!");
+			send_error(BLE_connection_failed);
 			return false;
 		}
 
@@ -136,32 +108,39 @@ bool controlEmitters(BLEDevice peripheral){
 			Serial.println("Attributes discovered");
 		} else {
 			Serial.println("Attribute discovery failed!");
+			send_error(BLE_connection_failed);
 			peripheral.disconnect();
 			return false;
 		}
 
 		// retrieve the Emitter characteristic
-		emittersCharacteristic = peripheral.characteristic(CHARACTERISTIC_UUID);
+		emittersCharacteristic =
+		    peripheral.characteristic(CHARACTERISTIC_UUID);
 
 		if (!emittersCharacteristic) {
-			Serial.println("Peripheral does not have Emitter characteristic!");
+			Serial.println(
+			    "Peripheral does not have Emitter characteristic!");
+			send_error(BLE_connection_failed);
 			peripheral.disconnect();
 			return false;
 		} else if (!emittersCharacteristic.canWrite()) {
-			Serial.println("Peripheral does not have a writable Emitter characteristic!");
+			Serial.println("Peripheral does not have a writable "
+				       "Emitter characteristic!");
+			send_error(BLE_connection_failed);
 			peripheral.disconnect();
 			return false;
 		}
 	}
 
-  	if (peripheral.connected()) {
+	if (peripheral.connected()) {
 		// while the peripheral is connected
 
 		// Print what we're about to send
 		Serial.print("Bytes: ");
 		for (int i = 0; i < 8; i++) {
-		Serial.print(emitterBytes[i]);
-		if (i < 7) Serial.print(", ");
+			Serial.print(emitterBytes[i]);
+			if (i < 7)
+				Serial.print(", ");
 		}
 		Serial.println();
 
@@ -169,29 +148,47 @@ bool controlEmitters(BLEDevice peripheral){
 		// writeValue accepts (const uint8_t* data, unsigned int length)
 		bool ok = emittersCharacteristic.writeValue(emitterBytes, 8);
 		if (ok) {
-		Serial.println("Write successful");
+			Serial.println("Write successful");
 		} else {
-		Serial.println("Write failed");
-		return false;
+			Serial.println("Write failed");
+			send_error(BLE_send_failed);
+			return false;
 		}
 		return true;
-	}
-	else {
+	} else {
 		peripheral_Flag = false;
+		send_error(BLE_connection_failed);
 		return false;
 	}
 
-	return false;
+	return false; // shouldn't this be true?
 }
 
 // Functions Definitions: Init functions
-void init_GSM() {}
+bool init_GSM() {
+	GSMserial.begin(9600, SERIAL_8N1, 9, 8);
+	if (!gsm.begin(GSMserial)) {
+		Serial.println("Couldn't start the GSM");
+		return false;
+	}
+	if (!gsm.startGPRS()) {
+		Serial.println("couldn't connect to internet");
+		return false;
+	}
+	gsm.tcpConnect(HOST_NAME, PORT);
+	if (!gsm.tcpStatus()) {
+		Serial.println("couldn't connect to internet");
+		return false;
+	}
+	return true;
+}
 
 bool init_bluetooth() {
-	
+
 	// initialize the Bluetooth® Low Energy hardware
 	if (!BLE.begin()) {
 		Serial.println("Failed to initialize BLE!");
+		send_error(BLE_connection_failed);
 		return false;
 	}
 
@@ -207,7 +204,8 @@ bool init_sensors() {
 		Serial.println("BME680 not found...");
 		return false;
 	}
-	// if (init_sensor2() != 0) { // if Multichannel Gas Sensor failed to start
+	// if (init_sensor2() != 0) { // if Multichannel Gas Sensor failed to
+	// start
 	//	send_error(Sensor_failed_to_start);
 	//	return false;
 	// }
@@ -217,6 +215,7 @@ bool init_sensors() {
 	// }
 	return true;
 }
-bool send_error(error_codes_t) {
+bool send_error(error_codes_t error) {
 	// GSM_send(the error);
+	Serial.println(error);
 }
