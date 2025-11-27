@@ -19,6 +19,7 @@
 
 typedef enum {
 	Sensor_failed_to_start,
+	Sensor_failed_to_read,
 	Emmiter_not_found,
 	Enose_power_critical,
 	Emmiter_power_critical,

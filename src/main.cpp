@@ -160,7 +160,7 @@ bool control_emitters(BLEDevice peripheral) {
 		return false;
 	}
 
-	return false; // shouldn't this be true?
+	return false; // shouldn't this be true? Answer: Well if we reach here, something went wrong.
 }
 
 // Functions Definitions: Init functions
@@ -197,21 +197,66 @@ bool init_bluetooth() {
 }
 
 bool init_sensors() {
+	// BME680 init
+	float temp = 0;
+	float hum = 0;
+	float pres = 0;
+	float gas = 0;
 
 	if (bme680.init() != 0) { // if BME680 failed to start
 		send_error(Sensor_failed_to_start);
 		Serial.println("BME680 not found...");
 		return false;
 	}
+
+	if (!bme680.read_sensor_data()) {
+		temp = bme680.sensor_result_value.temperature;
+		hum = bme680.sensor_result_value.humidity;
+		pres = bme680.sensor_result_value.pressure / 1000.0;
+		gas = bme680.sensor_result_value.gas / 1000.0;
+	} else {
+		send_error(Sensor_failed_to_read);
+		Serial.println("BME680 read failed!");
+		return false;
+	}
+
+	// SGP41 init
+	int cond_s = 10;
+	uint16_t error;
+	char errorMessage[256];
+	uint16_t defaultRh = 0x8000;
+	uint16_t defaultT = 0x6666;
+	uint16_t srawVoc = 0;
+	uint16_t srawNox = 0;
+
+	// convert BME680 humidity/temperature to sensor ticks (for humidity and temp compensation)
+	uint16_t rhTicks = (uint16_t)(hum * 65535.0f / 100.0f + 0.5f);
+	uint16_t tTicks = (uint16_t)(((temp) + 45.0f) * 65535.0f / 175.0f + 0.5f);
+
+	while(cond_s > 0) {
+		// During NOx conditioning (max. 10s) SRAW NOx will remain 0
+		error = sgp41.executeConditioning(rhTicks, tTicks, srawVoc);
+		cond_s--;
+		delay(500); 
+	} // after 5 seconds of conditioning
+
+	// Read Measurement
+	error = sgp41.measureRawSignals(rhTicks, tTicks, srawVoc, srawNox);
+
+	if (error) {
+		Serial.print("Error trying to execute measureRawSignals(): ");
+		errorToString(error, errorMessage, 256);
+		send_error(Sensor_failed_to_start);
+		return false;
+	}
+
+	// Multichannel Gas Sensor v2 init
 	// if (init_sensor2() != 0) { // if Multichannel Gas Sensor failed to
 	// start
 	//	send_error(Sensor_failed_to_start);
 	//	return false;
 	// }
-	// if (init_sensor3() != 0) { // if SGP41 failed to start
-	//	send_error(Sensor_failed_to_start);
-	//	return false;
-	// }
+
 	return true;
 }
 bool send_error(error_codes_t error) {
