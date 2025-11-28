@@ -11,8 +11,7 @@ GAS_GMXXX<TwoWire> gasSensor;
 Seeed_BME680 bme680(uint8_t(0x76));
 SensirionI2CSgp41 sgp41;
 // Global variables
-uint8_t emitterBytes[8] = {
-    255, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
+uint8_t emitterBytes[8] = {0, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
 bool peripheral_Flag = false;  // flag to indicate if peripheral is connected
 BLECharacteristic emittersCharacteristic;
 BLEDevice peripheral;
