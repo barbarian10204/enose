@@ -38,10 +38,11 @@ void loop() {
 	// 	all_sensors_data_t sens_struct;
 	// 	sensor_readings(&sens_struct);
 	// 	sprintf(sensors_data,
-	// "%s,%f.2,%f.2,%f.2,%f.2,%d,%d,%d,%d,%d,%d,", time, 		sens_struct.temp,
-	// sens_struct.preasure, sens_struct.c, 		sens_struct.d, sens_struct.e,
-	// sens_struct.f, sens_struct.g, 		sens_struct.h, sens_struct.i,
-	// sens_struct.j); 	if (gsm.tcpAvailable()) { 		gsm.tcpSend(sensors_data);
+	// "%s,%f.2,%f.2,%f.2,%f.2,%d,%d,%d,%d,%d,%d,", time,
+	// sens_struct.temp, sens_struct.preasure, sens_struct.c,
+	// sens_struct.d, sens_struct.e, sens_struct.f, sens_struct.g,
+	// sens_struct.h, sens_struct.i, sens_struct.j); 	if
+	// (gsm.tcpAvailable()) { 		gsm.tcpSend(sensors_data);
 	// 		loops_without_sending = 0;
 	// 	} else {
 	// 		sensor_lines[loops_without_sending] = sensors_data;
