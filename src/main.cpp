@@ -237,8 +237,8 @@ bool init_sensors() {
 		// During NOx conditioning (max. 10s) SRAW NOx will remain 0
 		error = sgp41.executeConditioning(rhTicks, tTicks, srawVoc);
 		cond_s--;
-		delay(500); 
-	} // after 5 seconds of conditioning
+		delay(1000); 
+	} // after 10 seconds of conditioning
 
 	// Read Measurement
 	error = sgp41.measureRawSignals(rhTicks, tTicks, srawVoc, srawNox);
@@ -251,11 +251,18 @@ bool init_sensors() {
 	}
 
 	// Multichannel Gas Sensor v2 init
-	// if (init_sensor2() != 0) { // if Multichannel Gas Sensor failed to
-	// start
-	//	send_error(Sensor_failed_to_start);
-	//	return false;
-	// }
+	// Doesn't have init function so we have to just make sure the readings look okay
+	uint16_t NO2 = gasSensor.getGM102B();   // NO2 (Nitrogen Dioxide)
+	uint16_t eth = gasSensor.getGM302B();    // Ethanol
+	uint16_t VOC = gasSensor.getGM502B();   // VOC (Alcohol, Nitrogen, Formaldehyde)
+	uint16_t COandH2 = gasSensor.getGM702B();  // CO and H2 (Carbon Monoxide and Hydrogen)
+
+	// if any of the readings are zero, sensor likely failed to start
+	if (NO2 == 0 || eth == 0 || VOC == 0 || COandH2 == 0) {
+		send_error(Sensor_failed_to_start);
+		Serial.println("Multichannel Gas Sensor failed to start");
+		return false;
+	}
 
 	return true;
 }
