@@ -10,17 +10,22 @@
 
 // Constants
 #define HOST_NAME "Name" // The server address
-#define PORT 1234	 // The port number for sending data with gsm
-#define CHARACTERISTIC_UUID                                                    \
-	"19b10001-e8f2-537e-4f6c-d104768a1214" // The characteristic UUID for
-					       // the emitter device
-#define SERVICE_UUID                                                           \
-	"19b10000-e8f2-537e-4f6c-d104768a1214" // The service UUID for the
-					       // emitter control
+#define PORT 1234	 // The port number for sending data with GSM
+#define CHARACTERISTIC_UUID "19b10001-e8f2-537e-4f6c-d104768a1214" 
+/* The characteristic UUID for
+	the emitter device
+*/
+#define SERVICE_UUID "19b10000-e8f2-537e-4f6c-d104768a1214" 
+/* The service UUID for the emitter control
+*/
 
 typedef enum {
-	Sensor_failed_to_start,
-	Sensor_failed_to_read,
+	SensorBME680_failed_to_start,
+	SensorBME680_failed_to_read,
+	SensorSGP41_failed_to_start,
+	SensorSGP41_failed_to_read,
+	SensorMultichannelGas_failed_to_start,
+	// SensorMultichannelGas_failed_to_read, // We cannot really tell if this sensors failed ot read
 	Emmiter_not_found,
 	Enose_power_critical,
 	Emmiter_power_critical,
@@ -42,25 +47,29 @@ typedef struct {
 
 // Function prototypes
 // Function prototypes: Init functions
-bool init_GSM();       // innitialises the communication between GSM and server
-bool init_bluetooth(); // innitialises the bluetooth module
-bool init_sensors();   // starts the sensors
+bool init_GSM();       			// innitialises the communication between GSM and server
+bool init_bluetooth(); 			// innitialises the bluetooth module
+bool init_sensors();   			// starts the sensors
 bool send_error(error_codes_t); // sends the error code to server
 
 // Function prototypes: Main functions
-void sensor_readings();	     // reads data from sensors
-/* Function providing readings from SGP41, Multichannel gas sensor v2, and BME680. It them to (????) for GSM transmission.
+void sensor_readings();	     	// reads data from sensors
+/* Function providing readings from SGP41, Multichannel gas sensor v2, 
+	and BME680. It them to (????) for GSM transmission.
 
-Note: Make sure there is a consistent delay between readings that is at least 1 second. We can
-	implement a dynamic timer later to optimize the time between readings based on how long other 
-	processes are between each call. */
+	Note: Make sure there is a consistent delay between readings that is at least 1 second. We can
+		implement a dynamic timer later to optimize the time between readings based on how long other 
+		processes are between each call. 
+*/
 
 bool bluetooth_to_emitter(); 
 /* Attempts to discover emitter device over bluetooth. If it finds any, it calls
 	controlEmitters to send control bytes. If a device is not found or something fails, it
-	returns false. */
+	returns false. 
+*/
 
 bool control_emitters(
     BLEDevice peripheral); 
 /* Connects to multi-emitterdevice and sends control bytes to
-	emitter over bluetooth*/
+	emitter over bluetooth
+*/

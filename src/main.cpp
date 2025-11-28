@@ -38,12 +38,10 @@ void setup() {
 // Main loop
 void loop() {
 	// make sure time between each reading is at least 1 second
-	// sensor_readings();
+	sensor_readings();
 
 	// wrap every other action in a timer-activated block (active after 30
 	// minutes of collecting readings to preheat gas sensors)
-
-	sensor_readings();
 
 	// if (bluetooth_to_emitter()) {
 	// 	Serial.println("good");
@@ -70,7 +68,7 @@ void sensor_readings() {
 		gas = bme680.sensor_result_value.gas / 1000.0;
 	} else {
 		Serial.println("BME680 read failed!");
-		send_error(Sensor_failed_to_read);
+		send_error(SensorBME680_failed_to_read);
 	}
 
 	// == SGP41 readings ==
@@ -92,16 +90,14 @@ void sensor_readings() {
 	if (error) {
 		Serial.print("Error trying to execute measureRawSignals(): ");
 		errorToString(error, errorMessage, 256);
-		send_error(Sensor_failed_to_read);
+		send_error(SensorSGP41_failed_to_read);
 	}
 
 	// == Multichannel Gas Sensor readings ==
 	uint16_t NO2 = gasSensor.getGM102B(); // NO2 (Nitrogen Dioxide)
 	uint16_t eth = gasSensor.getGM302B(); // Ethanol
-	uint16_t VOC =
-	    gasSensor.getGM502B(); // VOC (Alcohol, Nitrogen, Formaldehyde)
-	uint16_t COandH2 =
-	    gasSensor.getGM702B(); // CO and H2 (Carbon Monoxide and Hydrogen)
+	uint16_t VOC = gasSensor.getGM502B(); // VOC (Alcohol, Nitrogen, Formaldehyde)
+	uint16_t COandH2 = gasSensor.getGM702B(); // CO and H2 (Carbon Monoxide and Hydrogen)
 
 	// append readings to string for GSM transmission (TODO)
 	unsigned long elapsed = millis() - start;
@@ -170,7 +166,7 @@ bool bluetooth_to_emitter() {
 			return false;
 		}
 	}
-	return false; // shouldn't this be true?
+	return false;
 }
 
 bool control_emitters(BLEDevice peripheral) {
@@ -246,8 +242,7 @@ bool control_emitters(BLEDevice peripheral) {
 		return false;
 	}
 
-	return false; // shouldn't this be true? Answer: Well if we reach here,
-		      // something went wrong.
+	return false;
 }
 
 // Functions Definitions: Init functions
@@ -291,7 +286,7 @@ bool init_sensors() {
 	float gas = 0;
 
 	if (!bme680.init()) { // if BME680 failed to start
-		send_error(Sensor_failed_to_start);
+		send_error(SensorBME680_failed_to_start);
 		Serial.println("BME680 not found...");
 		return false;
 	}
@@ -302,7 +297,7 @@ bool init_sensors() {
 		pres = bme680.sensor_result_value.pressure / 1000.0;
 		gas = bme680.sensor_result_value.gas / 1000.0;
 	} else {
-		send_error(Sensor_failed_to_read);
+		send_error(SensorBME680_failed_to_read);
 		Serial.println("BME680 read failed!");
 		return false;
 	}
@@ -338,7 +333,7 @@ bool init_sensors() {
 	if (error) {
 		Serial.print("Error trying to execute measureRawSignals(): ");
 		errorToString(error, errorMessage, 256);
-		send_error(Sensor_failed_to_start);
+		send_error(SensorSGP41_failed_to_start);
 		return false;
 	}
 
@@ -356,7 +351,7 @@ bool init_sensors() {
 
 	// if any of the readings are zero, sensor likely failed to start
 	if (NO2 == 0 || eth == 0 || VOC == 0 || COandH2 == 0) {
-		send_error(Sensor_failed_to_start);
+		send_error(SensorMultichannelGas_failed_to_start);
 		Serial.println("Multichannel Gas Sensor failed to start");
 		return false;
 	}
