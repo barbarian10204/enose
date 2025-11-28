@@ -11,7 +11,8 @@ GAS_GMXXX<TwoWire> gasSensor;
 Seeed_BME680 bme680(uint8_t(0x76));
 SensirionI2CSgp41 sgp41;
 // Global variables
-uint8_t emitterBytes[8] = {255, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
+uint8_t emitterBytes[8] = {
+    255, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
 bool peripheral_Flag = false;  // flag to indicate if peripheral is connected
 BLECharacteristic emittersCharacteristic;
 BLEDevice peripheral;
@@ -31,7 +32,24 @@ void loop() {
 	// wrap every other action in a timer-activated block (active after 30
 	// minutes of collecting readings to preheat gas sensors)
 
-	if (bluetooth_to_emitter()) {
+	// 	char sensors_data[100];
+	// 	char *time;
+	// 	sprintf(time, "%lu", millis());
+	// 	all_sensors_data_t sens_struct;
+	// 	sensor_readings(&sens_struct);
+	// 	sprintf(sensors_data,
+	// "%s,%f.2,%f.2,%f.2,%f.2,%d,%d,%d,%d,%d,%d,", time, 		sens_struct.temp,
+	// sens_struct.preasure, sens_struct.c, 		sens_struct.d, sens_struct.e,
+	// sens_struct.f, sens_struct.g, 		sens_struct.h, sens_struct.i,
+	// sens_struct.j); 	if (gsm.tcpAvailable()) { 		gsm.tcpSend(sensors_data);
+	// 		loops_without_sending = 0;
+	// 	} else {
+	// 		sensor_lines[loops_without_sending] = sensors_data;
+	// 		loops_without_sending++;
+	// 	}
+
+	if (bluetooth_to_emitter()) { // not sure where in the loop this should
+				      // be placed
 		Serial.println("good");
 	} else {
 		Serial.println("bad");
@@ -43,7 +61,7 @@ void loop() {
 // Functions Definitions
 // Functions Definitions: Main functions
 void sensor_readings() {
-	// read data from sensors
+	// read data from sensors into the provided structure
 }
 
 bool bluetooth_to_emitter() {
@@ -215,6 +233,8 @@ bool init_sensors() {
 	return true;
 }
 bool send_error(error_codes_t error) {
-	// GSM_send(the error);
-	Serial.println(error);
+	char *error_message = (char *)error; // this might not work
+	gsm.tcpSend(error_message);
+	Serial.println(error_message);
+	return true;
 }
