@@ -15,12 +15,23 @@ uint8_t emitterBytes[8] = {255, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for e
 bool peripheral_Flag = false;  // flag to indicate if peripheral is connected
 BLECharacteristic emittersCharacteristic;
 BLEDevice peripheral;
+long unsigned int start = 0; // timer for sensor readings
 
 void setup() {
+	// =======FOR TESTING REMOVRE LATER =======
+	Serial.begin(9600);
+	Wire.begin();
+
+	while(!Serial) {
+		; // wait for serial port to connect. Needed for native USB
+	}
+	// =======FOR TESTING REMOVRE LATER =======
+
+	start = millis();
 	// set up leds before inits so we can indicate if any of them failed
 	init_sensors();
-	init_bluetooth();
-	init_GSM();
+	// init_bluetooth();
+	// init_GSM();
 }
 
 // Main loop
@@ -31,19 +42,89 @@ void loop() {
 	// wrap every other action in a timer-activated block (active after 30
 	// minutes of collecting readings to preheat gas sensors)
 
-	if (bluetooth_to_emitter()) {
-		Serial.println("good");
-	} else {
-		Serial.println("bad");
-	}
-	delay(100); // Delay for testing purposes, will add a dynamic timer for
+	sensor_readings();
+
+	// if (bluetooth_to_emitter()) {
+	// 	Serial.println("good");
+	// } else {
+	// 	Serial.println("bad");
+	// }
+	delay(1000); // Delay for testing purposes, will add a dynamic timer for
 		    // sensors later
 }
 
 // Functions Definitions
 // Functions Definitions: Main functions
 void sensor_readings() {
-	// read data from sensors
+	// == BME680 readings ==
+	float temp = 0;
+	float hum = 0;
+	float pres = 0;
+	float gas = 0;
+
+	if (!bme680.read_sensor_data()) {
+		temp = bme680.sensor_result_value.temperature;
+		hum = bme680.sensor_result_value.humidity;
+		pres = bme680.sensor_result_value.pressure / 1000.0;
+		gas = bme680.sensor_result_value.gas / 1000.0;
+	} else {
+		Serial.println("BME680 read failed!");
+		send_error(Sensor_failed_to_read);
+	}
+
+	// == SGP41 readings ==
+	uint16_t error;
+	char errorMessage[256];
+	uint16_t defaultRh = 0x8000;
+	uint16_t defaultT = 0x6666;
+	uint16_t srawVoc = 0;
+	uint16_t srawNox = 0;
+
+	// convert BME680 humidity/temperature to sensor ticks (for humidity and temp compensation)
+	uint16_t rhTicks = (uint16_t)(hum * 65535.0f / 100.0f + 0.5f);
+	uint16_t tTicks = (uint16_t)(((temp) + 45.0f) * 65535.0f / 175.0f + 0.5f);
+	
+	error = sgp41.measureRawSignals(rhTicks, tTicks, srawVoc, srawNox);
+
+	if (error) {
+		Serial.print("Error trying to execute measureRawSignals(): ");
+		errorToString(error, errorMessage, 256);
+		send_error(Sensor_failed_to_read);
+	}
+
+	// == Multichannel Gas Sensor readings ==
+	uint16_t NO2 = gasSensor.getGM102B();   // NO2 (Nitrogen Dioxide)
+	uint16_t eth = gasSensor.getGM302B();    // Ethanol
+	uint16_t VOC = gasSensor.getGM502B();   // VOC (Alcohol, Nitrogen, Formaldehyde)
+	uint16_t COandH2 = gasSensor.getGM702B();  // CO and H2 (Carbon Monoxide and Hydrogen)
+
+	// append readings to string for GSM transmission (TODO)
+	unsigned long elapsed = millis() - start;
+	// Timestamp
+	Serial.print(elapsed);
+	Serial.print(",");
+	// BME680 readings
+	Serial.print(temp, 2);
+	Serial.print(",");
+	Serial.print(hum, 2);
+	Serial.print(",");
+	Serial.print(pres, 2);
+	Serial.print(",");
+	Serial.print(gas, 2);
+	Serial.print(",");
+	// SGP41 readings
+	Serial.print(srawVoc);
+	Serial.print(",");
+	Serial.print(srawNox);
+	Serial.print(",");
+	// Multichannel gas sensor readings
+	Serial.print(NO2);
+	Serial.print(",");
+	Serial.print(eth);
+	Serial.print(",");
+	Serial.print(VOC);
+	Serial.print(",");
+	Serial.println(COandH2);
 }
 
 bool bluetooth_to_emitter() {
@@ -203,7 +284,7 @@ bool init_sensors() {
 	float pres = 0;
 	float gas = 0;
 
-	if (bme680.init() != 0) { // if BME680 failed to start
+	if (!bme680.init()) { // if BME680 failed to start
 		send_error(Sensor_failed_to_start);
 		Serial.println("BME680 not found...");
 		return false;
@@ -229,10 +310,13 @@ bool init_sensors() {
 	uint16_t srawVoc = 0;
 	uint16_t srawNox = 0;
 
+	sgp41.begin(Wire);
+
 	// convert BME680 humidity/temperature to sensor ticks (for humidity and temp compensation)
 	uint16_t rhTicks = (uint16_t)(hum * 65535.0f / 100.0f + 0.5f);
 	uint16_t tTicks = (uint16_t)(((temp) + 45.0f) * 65535.0f / 175.0f + 0.5f);
 
+	Serial.println("Starting SGP41 conditioning for 10s...");
 	while(cond_s > 0) {
 		// During NOx conditioning (max. 10s) SRAW NOx will remain 0
 		error = sgp41.executeConditioning(rhTicks, tTicks, srawVoc);
@@ -251,6 +335,8 @@ bool init_sensors() {
 	}
 
 	// Multichannel Gas Sensor v2 init
+
+	gasSensor.begin(Wire, 0x08); // Default I2C address is 0x08
 	// Doesn't have init function so we have to just make sure the readings look okay
 	uint16_t NO2 = gasSensor.getGM102B();   // NO2 (Nitrogen Dioxide)
 	uint16_t eth = gasSensor.getGM302B();    // Ethanol
@@ -269,4 +355,5 @@ bool init_sensors() {
 bool send_error(error_codes_t error) {
 	// GSM_send(the error);
 	Serial.println(error);
+	return false; // (TODO)?
 }

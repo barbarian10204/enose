@@ -36,11 +36,18 @@ bool send_error(error_codes_t); // sends the error code to server
 
 // Function prototypes: Main functions
 void sensor_readings();	     // reads data from sensors
-bool bluetooth_to_emitter(); // Attempts to discover emitter device over
-			     // bluetooth. If it finds any, it calls
-			     // controlEmitters to send control bytes. If a
-			     // device is not found or something fails, it
-			     // returns false.
+/* Function providing readings from SGP41, Multichannel gas sensor v2, and BME680. It them to (????) for GSM transmission.
+
+Note: Make sure there is a consistent delay between readings that is at least 1 second. We can
+	implement a dynamic timer later to optimize the time between readings based on how long other 
+	processes are between each call. */
+
+bool bluetooth_to_emitter(); 
+/* Attempts to discover emitter device over bluetooth. If it finds any, it calls
+	controlEmitters to send control bytes. If a device is not found or something fails, it
+	returns false. */
+
 bool control_emitters(
-    BLEDevice peripheral); // connects to device and sends control bytes to
-			   // emitter over bluetooth
+    BLEDevice peripheral); 
+/* Connects to multi-emitterdevice and sends control bytes to
+	emitter over bluetooth*/
