@@ -6,6 +6,7 @@
 #include <ArduinoBLE.h> // Arduino BLE library
 #include <HardwareSerial.h>
 #include <SIM800L.h>
+#include <stdio.h>
 
 // Constants
 #define HOST_NAME "Name" // The server address
@@ -26,6 +27,18 @@ typedef enum {
 	BLE_connection_failed,
 	BLE_send_failed
 } error_codes_t;
+typedef struct {
+	float temp;
+	float preasure;
+	float c;
+	float d;
+	int e;
+	int f;
+	int g;
+	int h;
+	int i;
+	int j;
+} all_sensors_data_t;
 
 // Function prototypes
 // Function prototypes: Init functions
