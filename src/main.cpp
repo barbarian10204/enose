@@ -423,9 +423,9 @@ bool init_sensors() {
 	return true;
 }
 
-bool send_error(error_codes_t error) {
-	char *error_message = (char *)error; // this might not work
-	gsm.tcpSend(error_message);
-	Serial.println(error_message);
-	return true;
+bool send_error(error_codes_t error) { // (TODO)
+	// char *error_message = (char *)error; // this might not work
+	// gsm.tcpSend(error_message);
+	// Serial.println(error_message);
+	// return true;
 }
