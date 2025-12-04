@@ -3,8 +3,8 @@
 
 // Constructors
 // Constructors: GSM objects
+SIM800L* sim800l;
 HardwareSerial GSMserial(1); // RX, TX
-SIM800L gsm;
 
 // Constructors: Sensor objects
 GAS_GMXXX<TwoWire> gasSensor;
@@ -30,8 +30,8 @@ void setup() {
 	start = millis();
 	// set up leds before inits so we can indicate if any of them failed
 	init_sensors();
-	// init_bluetooth();
-	// init_GSM();
+	init_bluetooth();
+	init_GSM();
 }
 
 // Main loop
@@ -98,33 +98,70 @@ void sensor_readings() {
 	uint16_t VOC = gasSensor.getGM502B(); // VOC (Alcohol, Nitrogen, Formaldehyde)
 	uint16_t COandH2 = gasSensor.getGM702B(); // CO and H2 (Carbon Monoxide and Hydrogen)
 
-	// append readings to string for GSM transmission (TODO)
+	// Now appending readings to string for GSM transmission
 	unsigned long elapsed = millis() - start;
-	// Timestamp
-	Serial.print(elapsed);
-	Serial.print(",");
-	// BME680 readings
-	Serial.print(temp, 2);
-	Serial.print(",");
-	Serial.print(hum, 2);
-	Serial.print(",");
-	Serial.print(pres, 2);
-	Serial.print(",");
-	Serial.print(gas, 2);
-	Serial.print(",");
-	// SGP41 readings
-	Serial.print(srawVoc);
-	Serial.print(",");
-	Serial.print(srawNox);
-	Serial.print(",");
-	// Multichannel gas sensor readings
-	Serial.print(NO2);
-	Serial.print(",");
-	Serial.print(eth);
-	Serial.print(",");
-	Serial.print(VOC);
-	Serial.print(",");
-	Serial.println(COandH2);
+
+	// Build JSON payload string
+	String payload = "{";
+	payload += "\"timestamp\":" + String(elapsed) + ",";
+	payload += "\"temperature\":" + String(temp, 2) + ",";
+	payload += "\"humidity\":" + String(hum, 2) + ",";
+	payload += "\"pressure\":" + String(pres, 2) + ",";
+	payload += "\"gas\":" + String(gas, 2) + ",";
+	payload += "\"voc_raw\":" + String(srawVoc) + ",";
+	payload += "\"nox_raw\":" + String(srawNox) + ",";
+	payload += "\"no2\":" + String(NO2) + ",";
+	payload += "\"ethanol\":" + String(eth) + ",";
+	payload += "\"voc\":" + String(VOC) + ",";
+	payload += "\"co_h2\":" + String(COandH2);
+	payload += "}";
+
+	// Send using GSM
+	send_gsm_payload(payload);
+}
+
+void send_gsm_payload(String jsonPayload) {
+    const char CONTENT_TYPE[] = "application/json";
+
+    // Convert String → char buffer
+    int len = jsonPayload.length();
+    char payloadChar[len + 1];
+    jsonPayload.toCharArray(payloadChar, len + 1);
+
+    // Ensure module is ready
+    if (!sim800l->isReady()) {
+        Serial.println("SIM800 not ready!");
+        return;
+    }
+
+    // Try connecting GPRS
+    bool connected = false;
+    for (uint8_t i = 0; i < 5 && !connected; i++) {
+        connected = sim800l->connectGPRS();
+        delay(500);
+    }
+
+    if (!connected) {
+        Serial.println("GPRS connection failed!");
+        return;
+    }
+
+    Serial.println("HTTP POST sending:");
+    Serial.println(jsonPayload);
+
+    // Send HTTP POST
+    uint16_t rc = sim800l->doPost(URL, CONTENT_TYPE, payloadChar, 10000, 10000);
+
+    if (rc == 200) {
+        Serial.println("HTTP POST OK");
+        Serial.println(sim800l->getDataReceived());
+    } else {
+        Serial.print("HTTP POST error: ");
+        Serial.println(rc);
+    }
+
+    // Disconnect GPRS
+    sim800l->disconnectGPRS();
 }
 
 bool bluetooth_to_emitter() {
@@ -246,20 +283,48 @@ bool control_emitters(BLEDevice peripheral) {
 
 // Functions Definitions: Init functions
 bool init_GSM() {
+
+	// Initialize the hardware GSMserial
 	GSMserial.begin(9600, SERIAL_8N1, 9, 8);
-	if (!gsm.begin(GSMserial)) {
-		Serial.println("Couldn't start the GSM");
-		return false;
+	delay(1000);
+	
+	// Initialize SIM800L driver with an internal buffer of 200 bytes and a reception buffer of 512 bytes, debug disabled
+	sim800l = new SIM800L((Stream *)&GSMserial, SIM800_RST_PIN, 200, 512);
+
+		// Wait until the module is ready to accept AT commands
+	while(!sim800l->isReady()) {
+		Serial.println(F("Problem to initialize AT command, retry in 1 sec"));
+		delay(1000);
 	}
-	if (!gsm.startGPRS()) {
-		Serial.println("couldn't connect to internet");
-		return false;
+	Serial.println(F("Setup Complete!"));
+
+	// Wait for the GSM signal
+	uint8_t signal = sim800l->getSignal();
+	while(signal <= 0) {
+		delay(1000);
+		signal = sim800l->getSignal();
 	}
-	gsm.tcpConnect(HOST_NAME, PORT);
-	if (!gsm.tcpStatus()) {
-		Serial.println("couldn't connect to internet");
-		return false;
+	Serial.print(F("Signal OK (strenght: "));
+	Serial.print(signal);
+	Serial.println(F(")"));
+	delay(1000);
+
+	// Wait for operator network registration (national or roaming network)
+	NetworkRegistration network = sim800l->getRegistrationStatus();
+	while(network != REGISTERED_HOME && network != REGISTERED_ROAMING) {
+		delay(1000);
+		network = sim800l->getRegistrationStatus();
 	}
+	Serial.println(F("Network registration OK"));
+	delay(1000);
+
+	// Setup APN for GPRS configuration
+	bool success = sim800l->setupGPRS(APN);
+	while(!success) {
+		success = sim800l->setupGPRS(APN);
+		delay(5000);
+	}
+	Serial.println(F("GPRS config OK"));
 	return true;
 }
 
@@ -357,6 +422,7 @@ bool init_sensors() {
 
 	return true;
 }
+
 bool send_error(error_codes_t error) {
 	char *error_message = (char *)error; // this might not work
 	gsm.tcpSend(error_message);

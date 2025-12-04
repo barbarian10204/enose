@@ -45,6 +45,12 @@ typedef struct {
 	int j;
 } all_sensors_data_t;
 
+#define SIM800_RST_PIN 6
+
+const char APN[] = "www.internet.mtelia.dk";
+const char URL[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data";
+const char CONTENT_TYPE[] = "application/json";
+
 // Function prototypes
 // Function prototypes: Init functions
 bool init_GSM();       			// innitialises the communication between GSM and server

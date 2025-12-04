@@ -10,8 +10,7 @@
             "includePath": [
                 "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/include",
                 "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/src",
-                "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/lib/SIM800L",
-                "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
+                "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/lib/Arduino-SIM800L-driver-master/src",
                 "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/lib/ArduinoBLE-master/src",
                 "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/lib/arduino-i2c-sgp41-master/src",
                 "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/lib/arduino-core-main/src",
@@ -246,6 +245,7 @@
                 "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/USB/src",
                 "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/Update/src",
                 "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src",
+                "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                 "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                 "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
                 ""
@@ -255,8 +255,7 @@
                 "path": [
                     "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/include",
                     "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/src",
-                    "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/lib/SIM800L",
-                    "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
+                    "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/lib/Arduino-SIM800L-driver-master/src",
                     "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/lib/ArduinoBLE-master/src",
                     "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/lib/arduino-i2c-sgp41-master/src",
                     "C:/Users/Pablo/Programming Projects/Telescent_Enose_Program_Repository/lib/arduino-core-main/src",
@@ -491,6 +490,7 @@
                     "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/USB/src",
                     "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/Update/src",
                     "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src",
+                    "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                     "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                     "C:/Users/Pablo/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
                     ""
