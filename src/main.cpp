@@ -110,7 +110,6 @@ bool GasDataPOST() {
 	payload += "\"timestamp\":" + String(elapsed) + ",";
 	payload += "\"temperature\":" + String(temp, 2) + ",";
 	payload += "\"humidity\":" + String(hum, 2) + ",";
-	payload += "\"pressure\":" + String(pres, 2) + ",";
 	payload += "\"gas\":" + String(gas, 2) + ",";
 	payload += "\"voc_raw\":" + String(srawVoc) + ",";
 	payload += "\"nox_raw\":" + String(srawNox) + ",";
