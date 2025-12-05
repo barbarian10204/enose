@@ -45,9 +45,9 @@ void loop() {
 	// wrap every other action in a timer-activated block (active after 30
 	// minutes of collecting readings to preheat gas sensors)
 
-	// getControlBytes();
+	// ControlBytesGET();
 
-	// bluetooth_to_emitter();
+	BluetoothToEmitters();
 
 	delay(1000); // Delay for testing purposes, will add a dynamic timer for
 		     // sensors later
@@ -178,7 +178,7 @@ bool send_gsm_payload(String jsonPayload) {
     // sim800l->disconnectGPRS(); // we only want to disconnect when battery is low, otherwise we stay connected so we can send data as fast as possible
 }
 
-bool bluetooth_to_emitter() {
+bool BluetoothToEmitters() {
 	// check if a peripheral has been discovered
 
 	if (!peripheral_Flag) {

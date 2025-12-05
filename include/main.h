@@ -53,13 +53,13 @@ const char CONTENT_TYPE[] = "application/json";
 
 // Function prototypes
 // Function prototypes: Init functions
-bool init_GSM();       			// innitialises the communication between GSM and server
-bool init_bluetooth(); 			// innitialises the bluetooth module
-bool init_sensors();   			// starts the sensors
+bool init_GSM();       			// initialises the GSM module
+bool init_bluetooth(); 			// initialises the bluetooth module
+bool init_sensors();   			// initialises the sensors
 bool send_error(error_codes_t); // sends the error code to server
 
 // Function prototypes: Main functions
-bool GasDataPOST();
+bool GasDataPOST(); // PRIMARY FUNCTION
 /* Function providing readings from SGP41, Multichannel gas sensor v2, 
 	and BME680. It appends them to a JSON payload string for GSM transmission.
 	It calls send_gsm_payload() and passes the payload with sensor readings 
@@ -70,23 +70,23 @@ bool GasDataPOST();
 		processes are between each call. 
 */
 
-bool bluetooth_to_emitter(); 
+bool BluetoothToEmitters(); // PRIMARY FUNCTION
 /* Attempts to discover emitter device over bluetooth. If it finds any, it calls
 	controlEmitters to send control bytes. If a device is not found or something fails, it
 	returns false. 
 */
 
-bool control_emitters(BLEDevice peripheral); 
+bool control_emitters(BLEDevice peripheral); // SECONDARY FUNCTION (called by BluetoothToEmitters)
 /* Connects to multi-emitterdevice and sends control bytes to
 	emitter over bluetooth
 */
 
-bool send_gsm_payload(String jsonPayload);
+bool send_gsm_payload(String jsonPayload); // SECONDARY FUNCTION (called by GasDataPOST)
 /* Sends a payload containing the sensor readings and the device ID to the web server using GSM.
 	The payload is in JSON format.
 */
 
-bool ControlBytesGET();
+bool ControlBytesGET(); // PRIMARY FUNCTION
 /* Retrieves control bytes from server using GSM to control the emitters.
 	The control bytes are stored in the global variable emitterBytes[8].
 */
