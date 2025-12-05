@@ -10,6 +10,7 @@ HardwareSerial GSMserial(1); // RX, TX
 GAS_GMXXX<TwoWire> gasSensor;
 Seeed_BME680 bme680(uint8_t(0x76));
 SensirionI2CSgp41 sgp41;
+
 // Global variables
 uint8_t emitterBytes[8] = {0, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
 bool peripheral_Flag = false;  // flag to indicate if peripheral is connected
@@ -37,23 +38,22 @@ void setup() {
 // Main loop
 void loop() {
 	// make sure time between each reading is at least 1 second
-	sensor_readings();
+	GasDataPOST();
 
 	// wrap every other action in a timer-activated block (active after 30
 	// minutes of collecting readings to preheat gas sensors)
 
-	// if (bluetooth_to_emitter()) {
-	// 	Serial.println("good");
-	// } else {
-	// 	Serial.println("bad");
-	// }
+	// getControlBytes();
+
+	// bluetooth_to_emitter();
+
 	delay(1000); // Delay for testing purposes, will add a dynamic timer for
 		     // sensors later
 }
 
 // Functions Definitions
 // Functions Definitions: Main functions
-void sensor_readings() {
+bool GasDataPOST() {
 	// == BME680 readings ==
 	float temp = 0;
 	float hum = 0;
@@ -68,6 +68,7 @@ void sensor_readings() {
 	} else {
 		Serial.println("BME680 read failed!");
 		send_error(SensorBME680_failed_to_read);
+		return false;
 	}
 
 	// == SGP41 readings ==
@@ -103,6 +104,7 @@ void sensor_readings() {
 
 	// Build JSON payload string
 	String payload = "{";
+	payload += "\"device_id\":\"" + String(DEVICE_ID) + "\",";
 	payload += "\"timestamp\":" + String(elapsed) + ",";
 	payload += "\"temperature\":" + String(temp, 2) + ",";
 	payload += "\"humidity\":" + String(hum, 2) + ",";
@@ -117,10 +119,13 @@ void sensor_readings() {
 	payload += "}";
 
 	// Send using GSM
-	send_gsm_payload(payload);
+	if (!send_gsm_payload(payload)) {
+	return false;
+	}
+	return true;
 }
 
-void send_gsm_payload(String jsonPayload) {
+bool send_gsm_payload(String jsonPayload) {
     const char CONTENT_TYPE[] = "application/json";
 
     // Convert String → char buffer
@@ -131,7 +136,7 @@ void send_gsm_payload(String jsonPayload) {
     // Ensure module is ready
     if (!sim800l->isReady()) {
         Serial.println("SIM800 not ready!");
-        return;
+        return false;
     }
 
     // Try connecting GPRS
@@ -143,7 +148,7 @@ void send_gsm_payload(String jsonPayload) {
 
     if (!connected) {
         Serial.println("GPRS connection failed!");
-        return;
+        return false;
     }
 
     Serial.println("HTTP POST sending:");
@@ -158,10 +163,13 @@ void send_gsm_payload(String jsonPayload) {
     } else {
         Serial.print("HTTP POST error: ");
         Serial.println(rc);
+        return false;
     }
 
-    // Disconnect GPRS
-    sim800l->disconnectGPRS();
+	return true;
+
+    // // Disconnect GPRS
+    // sim800l->disconnectGPRS(); // we only want to disconnect when battery is low, otherwise we stay connected so we can send data as fast as possible
 }
 
 bool bluetooth_to_emitter() {
@@ -279,6 +287,10 @@ bool control_emitters(BLEDevice peripheral) {
 	}
 
 	return false;
+}
+
+bool ControlBytesGET() {
+	// (TODO) implement function to GET control bytes from server using GSM
 }
 
 // Functions Definitions: Init functions
@@ -423,7 +435,7 @@ bool init_sensors() {
 	return true;
 }
 
-bool send_error(error_codes_t error) { // (TODO)
+bool send_error(error_codes_t error) { // (TODO) gotta update with new method for transmitting data over gsm
 	// char *error_message = (char *)error; // this might not work
 	// gsm.tcpSend(error_message);
 	// Serial.println(error_message);
