@@ -13,9 +13,11 @@ SensirionI2CSgp41 sgp41;
 
 // Global variables
 uint8_t emitterBytes[8] = {0, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
+
 bool peripheral_Flag = false;  // flag to indicate if peripheral is connected
 BLECharacteristic emittersCharacteristic;
 BLEDevice peripheral;
+
 long unsigned int start = 0; // timer for sensor readings
 
 void setup() {
@@ -139,17 +141,22 @@ bool send_gsm_payload(String jsonPayload) {
         return false;
     }
 
-    // Try connecting GPRS
-    bool connected = false;
-    for (uint8_t i = 0; i < 5 && !connected; i++) {
-        connected = sim800l->connectGPRS();
-        delay(500);
-    }
+	// Check if GPRS is already connected
+	if (!sim800l->isConnectedGPRS()) {
+		// Try connecting GPRS
+		bool connected = false;
+		for (uint8_t i = 0; i < 5 && !connected; i++) {
+			connected = sim800l->connectGPRS();
+			delay(500);
+		}
 
-    if (!connected) {
-        Serial.println("GPRS connection failed!");
-        return false;
-    }
+		if (!connected) {
+			Serial.println("GPRS connection failed!");
+			sim800l->reset();
+    		init_GSM();
+			return false;
+		}
+	}
 
     Serial.println("HTTP POST sending:");
     Serial.println(jsonPayload);
@@ -168,7 +175,7 @@ bool send_gsm_payload(String jsonPayload) {
 
 	return true;
 
-    // // Disconnect GPRS
+    // // Disconnect GPRS (only do if battery is low and also won't be done here, but in main loop)
     // sim800l->disconnectGPRS(); // we only want to disconnect when battery is low, otherwise we stay connected so we can send data as fast as possible
 }
 
