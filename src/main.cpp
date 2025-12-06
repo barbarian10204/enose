@@ -39,6 +39,7 @@ void setup() {
 
 // Main loop
 void loop() {
+	Serial.println();
 
 	// (TODO) warm up sensors
 
@@ -175,9 +176,6 @@ bool send_gsm_payload(String jsonPayload) {
     }
 
 	return true;
-
-    // // Disconnect GPRS (only do if battery is low and also won't be done here, but in main loop)
-    // sim800l->disconnectGPRS(); // we only want to disconnect when battery is low, otherwise we stay connected so we can send data as fast as possible
 }
 
 bool BluetoothToEmitters() {

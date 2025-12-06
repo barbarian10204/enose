@@ -49,7 +49,7 @@ typedef struct {
 
 const char APN[] = "www.internet.mtelia.dk";
 const char URLPOST[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data";
-const char URLGET[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/send-data";
+const char URLGET[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data/emitter";
 const char CONTENT_TYPE[] = "application/json";
 
 /* == Function prototypes == */
