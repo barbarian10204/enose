@@ -51,14 +51,22 @@ const char APN[] = "www.internet.mtelia.dk";
 const char URL[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data"; // perhaps remove endpoint specification and add it while POST-ing or GET-ing data
 const char CONTENT_TYPE[] = "application/json";
 
-// Function prototypes
-// Function prototypes: Init functions
+/* == Function prototypes == */
+
+/* Function prototypes: Init functions
+*/
+
 bool init_GSM();       			// initialises the GSM module
 bool init_bluetooth(); 			// initialises the bluetooth module
 bool init_sensors();   			// initialises the sensors
 bool send_error(error_codes_t); // sends the error code to server
 
-// Function prototypes: Main functions
+/* Function prototypes: Main functions
+
+	Note: Primary functions are called directly in the main loop
+	Secondary functions are called by primary functions
+*/
+
 bool GasDataPOST(); // PRIMARY FUNCTION
 /* Function providing readings from SGP41, Multichannel gas sensor v2, 
 	and BME680. It appends them to a JSON payload string for GSM transmission.

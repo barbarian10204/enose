@@ -45,7 +45,7 @@ void loop() {
 	// wrap every other action in a timer-activated block (active after 30
 	// minutes of collecting readings to preheat gas sensors)
 
-	// ControlBytesGET();
+	ControlBytesGET();
 
 	BluetoothToEmitters();
 
@@ -296,7 +296,100 @@ bool control_emitters(BLEDevice peripheral) {
 }
 
 bool ControlBytesGET() {
-	// (TODO) implement function to GET control bytes from server using GSM
+	    // Ensure module is ready
+    if (!sim800l->isReady()) {
+        Serial.println("SIM800 not ready!");
+        return false;
+    }
+
+	// Check if GPRS is already connected
+	if (!sim800l->isConnectedGPRS()) {
+		// Try connecting GPRS
+		bool connected = false;
+		for (uint8_t i = 0; i < 5 && !connected; i++) {
+			connected = sim800l->connectGPRS();
+			delay(500);
+		}
+
+		if (!connected) {
+			Serial.println("GPRS connection failed!");
+			sim800l->reset();
+    		init_GSM();
+			return false;
+		}
+	}
+		
+	Serial.println(F("Start HTTP GET..."));
+
+	// Do HTTP GET communication with 10s for the timeout (read)
+	uint16_t rc = sim800l->doGet(URL, 10000);
+	if(rc == 200) {
+		// Success, output the data received on the serial
+		Serial.print(F("HTTP GET successful ("));
+		Serial.print(sim800l->getDataSizeReceived());
+		Serial.println(F(" bytes)"));
+		Serial.print(F("Received : "));
+		Serial.println(sim800l->getDataReceived());
+	} else {
+		// Failed...
+		Serial.print(F("HTTP GET error "));
+		Serial.println(rc);
+		return false;
+	}
+
+	// Now setting control bytes from received data
+	String received = sim800l->getDataReceived();
+	
+	// Parse JSON and extract the 8 values into emitterBytes array
+	// Expected format: {"0": value, "1": value, ..., "7": value}
+	
+	for (uint8_t i = 0; i < 8; i++) {
+		String key = "\"" + String(i) + "\":";
+		int keyIndex = received.indexOf(key);
+		
+		if (keyIndex >= 0) {
+			// Move past the key to find the value
+			int valueStart = keyIndex + key.length();
+			
+			// Skip whitespace
+			while (valueStart < received.length() && 
+			       (received[valueStart] == ' ' || received[valueStart] == '\t')) {
+				valueStart++;
+			}
+			
+			// Extract the numeric value
+			int valueEnd = valueStart;
+			while (valueEnd < received.length() && 
+			       received[valueEnd] >= '0' && received[valueEnd] <= '9') {
+				valueEnd++;
+			}
+			
+			// Convert substring to integer
+			String valueStr = received.substring(valueStart, valueEnd);
+			int value = valueStr.toInt();
+			
+			// Clamp value to 0-255 range and assign to emitterBytes
+			if (value < 0) value = 0;
+			if (value > 255) value = 255;
+			emitterBytes[i] = (uint8_t)value;
+
+			Serial.println("Parsed emitter byte " + String(i) + ": " + String(emitterBytes[i]));
+		} else {
+			// Key not found, set to 0 as default
+			emitterBytes[i] = 0;
+			Serial.println("Key " + String(i) + " not found in JSON, setting to 0");
+		}
+	}
+	
+	Serial.println("Control bytes updated:");
+	for (int i = 0; i < 8; i++) {
+		Serial.print("emitterBytes[");
+		Serial.print(i);
+		Serial.print("] = ");
+		Serial.println(emitterBytes[i]);
+	}
+	
+	return true;
 }
 
 // Functions Definitions: Init functions
