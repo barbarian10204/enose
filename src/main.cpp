@@ -26,9 +26,9 @@ void setup() {
 	Wire.begin();
 
 	while (!Serial) {
-		; // wait for serial port to connect. Needed for native USB
+		; // wait for serial port to connect. Needed so we don't miss any prints
 	}
-	// =======FOR TESTING REMOVRE LATER =======
+	// (TODO) remove this because it's will make the program stuck here if we are not connected to serial monitor
 
 	start = millis();
 	// set up leds before inits so we can indicate if any of them failed
@@ -39,18 +39,20 @@ void setup() {
 
 // Main loop
 void loop() {
-	// make sure time between each reading is at least 1 second
-	GasDataPOST();
 
-	// wrap every other action in a timer-activated block (active after 30
-	// minutes of collecting readings to preheat gas sensors)
+	// (TODO) warm up sensors
+
+	GasDataPOST();
 
 	ControlBytesGET();
 
 	BluetoothToEmitters();
 
-	delay(1000); // Delay for testing purposes, will add a dynamic timer for
-		     // sensors later
+	// (TODO) implement battery check here and put everything to sleep mode if it's low and turn on low battery LED
+
+	// (TODO) doesn't have to be here but just do smth with the other LEDs
+	delay(1000); 
+	// (TODO) Replace with a dynamic timer for consistent time between sensor readings
 }
 
 // Functions Definitions
@@ -341,8 +343,8 @@ bool ControlBytesGET() {
 	String received = sim800l->getDataReceived();
 	
 	// Parse JSON and extract the 8 values into emitterBytes array
-	// Expected format: {"0": value, "1": value, ..., "7": value}
-	
+	// Expected format: {"0":value0,"1":value1,...,"7":value7}
+	// Where each value is an integer between 0 and 255
 	for (uint8_t i = 0; i < 8; i++) {
 		String key = "\"" + String(i) + "\":";
 		int keyIndex = received.indexOf(key);
@@ -388,6 +390,8 @@ bool ControlBytesGET() {
 		Serial.print("] = ");
 		Serial.println(emitterBytes[i]);
 	}
+
+	// (TODO) make emitters only turn on every once in a while if they get the same emitter control bytes
 	
 	return true;
 }
