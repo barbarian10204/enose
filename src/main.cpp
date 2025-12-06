@@ -163,7 +163,7 @@ bool send_gsm_payload(String jsonPayload) {
     Serial.println(jsonPayload);
 
     // Send HTTP POST
-    uint16_t rc = sim800l->doPost(URL, CONTENT_TYPE, payloadChar, 10000, 10000);
+    uint16_t rc = sim800l->doPost(URLPOST, CONTENT_TYPE, payloadChar, 10000, 10000);
 
     if (rc == 200) {
         Serial.println("HTTP POST OK");
@@ -324,7 +324,7 @@ bool ControlBytesGET() {
 	Serial.println(F("Start HTTP GET..."));
 
 	// Do HTTP GET communication with 10s for the timeout (read)
-	uint16_t rc = sim800l->doGet(URL, 10000);
+	uint16_t rc = sim800l->doGet(URLGET, 10000);
 	if(rc == 200) {
 		// Success, output the data received on the serial
 		Serial.print(F("HTTP GET successful ("));
