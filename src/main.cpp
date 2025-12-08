@@ -1,15 +1,4 @@
 #include "main.h"
-// Simple USART communication example for Arduino Nano ESP32
-
-// Constructors
-// Constructors: GSM objects
-SIM800L* sim800l;
-HardwareSerial GSMserial(1); // RX, TX
-
-// Constructors: Sensor objects
-GAS_GMXXX<TwoWire> gasSensor;
-Seeed_BME680 bme680(uint8_t(0x76));
-SensirionI2CSgp41 sgp41;
 
 // Global variables
 uint8_t emitterBytes[8] = {0, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
@@ -31,29 +20,31 @@ void setup() {
 	// (TODO) remove this because it's will make the program stuck here if we are not connected to serial monitor
 
 	start = millis();
-	// set up leds before inits so we can indicate if any of them failed
-	init_sensors();
+
+	init_LEDs();
+	// init_sensors();
 	init_bluetooth();
-	init_GSM();
+	// init_GSM();
+	// SensorsWarmup();
 }
 
 // Main loop
 void loop() {
 	Serial.println();
 
-	// (TODO) warm up sensors
+	// GasDataPOST();
 
-	GasDataPOST();
-
-	ControlBytesGET();
+	// ControlBytesGET();
 
 	BluetoothToEmitters();
 
 	// (TODO) implement battery check here and put everything to sleep mode if it's low and turn on low battery LED
+	// the function could be just putting everythign apart from gas sensors to sleep, turning off bluetooth and gsm
+	// and then go into a loop that keeps checking battery level every 1 minute or so to see if we can wake up again
 
 	// (TODO) doesn't have to be here but just do smth with the other LEDs
-	delay(1000); 
-	// (TODO) Replace with a dynamic timer for consistent time between sensor readings
+
+	delay(1000); // (TODO) Replace with a dynamic timer for consistent time between sensor readings
 }
 
 // Functions Definitions
@@ -72,7 +63,6 @@ bool GasDataPOST() {
 		gas = bme680.sensor_result_value.gas / 1000.0;
 	} else {
 		Serial.println("BME680 read failed!");
-		send_error(SensorBME680_failed_to_read);
 		return false;
 	}
 
@@ -95,7 +85,7 @@ bool GasDataPOST() {
 	if (error) {
 		Serial.print("Error trying to execute measureRawSignals(): ");
 		errorToString(error, errorMessage, 256);
-		send_error(SensorSGP41_failed_to_read);
+		Serial.println(errorMessage);
 	}
 
 	// == Multichannel Gas Sensor readings ==
@@ -229,7 +219,7 @@ bool control_emitters(BLEDevice peripheral) {
 			Serial.println("Connected");
 		} else {
 			Serial.println("Failed to connect!");
-			send_error(BLE_connection_failed);
+			peripheral_Flag = false;
 			return false;
 		}
 
@@ -239,7 +229,7 @@ bool control_emitters(BLEDevice peripheral) {
 			Serial.println("Attributes discovered");
 		} else {
 			Serial.println("Attribute discovery failed!");
-			send_error(BLE_connection_failed);
+			peripheral_Flag = false;
 			peripheral.disconnect();
 			return false;
 		}
@@ -251,52 +241,57 @@ bool control_emitters(BLEDevice peripheral) {
 		if (!emittersCharacteristic) {
 			Serial.println(
 			    "Peripheral does not have Emitter characteristic!");
-			send_error(BLE_connection_failed);
+			peripheral_Flag = false;
 			peripheral.disconnect();
 			return false;
 		} else if (!emittersCharacteristic.canWrite()) {
 			Serial.println("Peripheral does not have a writable "
 				       "Emitter characteristic!");
-			send_error(BLE_connection_failed);
+			peripheral_Flag = false;
 			peripheral.disconnect();
 			return false;
 		}
 	}
 
-	if (peripheral.connected()) {
-		// while the peripheral is connected
-
-		// Print what we're about to send
-		Serial.print("Bytes: ");
-		for (int i = 0; i < 8; i++) {
-			Serial.print(emitterBytes[i]);
-			if (i < 7)
-				Serial.print(", ");
-		}
-		Serial.println();
-
-		// write the 8-byte array to the characteristic
-		// writeValue accepts (const uint8_t* data, unsigned int length)
-		bool ok = emittersCharacteristic.writeValue(emitterBytes, 8);
-		if (ok) {
-			Serial.println("Write successful");
-		} else {
-			Serial.println("Write failed");
-			send_error(BLE_send_failed);
-			return false;
-		}
-		return true;
-	} else {
+	// Double-check connection before attempting write
+	if (!peripheral.connected()) {
+		Serial.println("Peripheral not connected");
 		peripheral_Flag = false;
-		send_error(BLE_connection_failed);
 		return false;
 	}
 
-	return false;
+	// Print what we're about to send
+	Serial.print("Bytes: ");
+	for (int i = 0; i < 8; i++) {
+		Serial.print(emitterBytes[i]);
+		if (i < 7)
+			Serial.print(", ");
+	}
+	Serial.println();
+
+	// write the 8-byte array to the characteristic
+	// writeValue accepts (const uint8_t* data, unsigned int length)
+	bool ok = emittersCharacteristic.writeValue(emitterBytes, 8);
+	if (!ok) {
+		Serial.println("Write failed - peripheral likely disconnected");
+		peripheral_Flag = false;
+		peripheral.disconnect();
+		return false;
+	}
+
+	// Verify connection is still active after write
+	if (!peripheral.connected()) {
+		Serial.println("Peripheral disconnected after write");
+		peripheral_Flag = false;
+		return false;
+	}
+
+	Serial.println("Write successful");
+	return true;
 }
 
 bool ControlBytesGET() {
-	    // Ensure module is ready
+	// Ensure module is ready
     if (!sim800l->isReady()) {
         Serial.println("SIM800 not ready!");
         return false;
@@ -394,6 +389,76 @@ bool ControlBytesGET() {
 	return true;
 }
 
+bool SensorsWarmup() {
+	digitalWrite(LED_WARMUPSENSORS_GSM, HIGH); // indicate warmup period with LED
+
+	for(int i = 0; i < 900; i++) { // 15 minutes of warmup at 1 reading per second
+		// == BME680 readings ==
+		float temp = 0;
+		float hum = 0;
+		float pres = 0;
+		float gas = 0;
+
+		if (!bme680.read_sensor_data()) {
+			temp = bme680.sensor_result_value.temperature;
+			hum = bme680.sensor_result_value.humidity;
+			pres = bme680.sensor_result_value.pressure / 1000.0;
+			gas = bme680.sensor_result_value.gas / 1000.0;
+		} else {
+			Serial.println("BME680 read failed!");
+			return false;
+		}
+
+		// == SGP41 readings ==
+		uint16_t error;
+		char errorMessage[256];
+		uint16_t defaultRh = 0x8000;
+		uint16_t defaultT = 0x6666;
+		uint16_t srawVoc = 0;
+		uint16_t srawNox = 0;
+
+		// convert BME680 humidity/temperature to sensor ticks (for humidity and
+		// temp compensation)
+		uint16_t rhTicks = (uint16_t)(hum * 65535.0f / 100.0f + 0.5f);
+		uint16_t tTicks =
+			(uint16_t)(((temp) + 45.0f) * 65535.0f / 175.0f + 0.5f);
+
+		error = sgp41.measureRawSignals(rhTicks, tTicks, srawVoc, srawNox);
+
+		if (error) {
+			Serial.print("Error trying to execute measureRawSignals(): ");
+			errorToString(error, errorMessage, 256);
+			Serial.println(errorMessage);
+			return false;
+		}
+
+		// == Multichannel Gas Sensor readings ==
+		uint16_t NO2 = gasSensor.getGM102B(); // NO2 (Nitrogen Dioxide)
+		uint16_t eth = gasSensor.getGM302B(); // Ethanol
+		uint16_t VOC = gasSensor.getGM502B(); // VOC (Alcohol, Nitrogen, Formaldehyde)
+		uint16_t COandH2 = gasSensor.getGM702B(); // CO and H2 (Carbon Monoxide and Hydrogen)
+
+		// Now printing all readings for debugging
+		Serial.print("BME680 - Temp: "); Serial.print(temp); Serial.print(" °C, Hum: "); 
+		Serial.print(hum); Serial.print(pres); Serial.print(" kPa, Gas: "); 
+		Serial.print(gas); Serial.println(" KOhms");
+		Serial.print("SGP41 - SRAW VOC: "); Serial.print(srawVoc); Serial.print(", SRAW NOx: "); 
+		Serial.println(srawNox);
+		Serial.print("Gas Sensor - NO2: "); Serial.print(NO2); Serial.print(" ppb, Ethanol: "); 
+		Serial.print(eth); Serial.print(" ppb, VOC: "); Serial.print(VOC); Serial.print(" ppb, CO+H2: "); 
+		Serial.print(COandH2); Serial.println(" ppb");
+		Serial.print("Warmup reading "); Serial.print(i + 1); Serial.println(" complete.");
+		Serial.println();
+
+		delay(1000); // 1 second between warmup readings
+	}
+
+	digitalWrite(LED_WARMUPSENSORS_GSM, LOW); // indicate end of warmup period with LED
+
+	Serial.print("Warmup complete.");
+	return true;
+}
+
 // Functions Definitions: Init functions
 bool init_GSM() {
 
@@ -446,7 +511,6 @@ bool init_bluetooth() {
 	// initialize the Bluetooth® Low Energy hardware
 	if (!BLE.begin()) {
 		Serial.println("Failed to initialize BLE!");
-		send_error(BLE_connection_failed);
 		return false;
 	}
 
@@ -463,7 +527,6 @@ bool init_sensors() {
 	float gas = 0;
 
 	if (!bme680.init()) { // if BME680 failed to start
-		send_error(SensorBME680_failed_to_start);
 		Serial.println("BME680 not found...");
 		return false;
 	}
@@ -474,7 +537,6 @@ bool init_sensors() {
 		pres = bme680.sensor_result_value.pressure / 1000.0;
 		gas = bme680.sensor_result_value.gas / 1000.0;
 	} else {
-		send_error(SensorBME680_failed_to_read);
 		Serial.println("BME680 read failed!");
 		return false;
 	}
@@ -510,7 +572,7 @@ bool init_sensors() {
 	if (error) {
 		Serial.print("Error trying to execute measureRawSignals(): ");
 		errorToString(error, errorMessage, 256);
-		send_error(SensorSGP41_failed_to_start);
+		Serial.println(errorMessage);
 		return false;
 	}
 
@@ -528,7 +590,6 @@ bool init_sensors() {
 
 	// if any of the readings are zero, sensor likely failed to start
 	if (NO2 == 0 || eth == 0 || VOC == 0 || COandH2 == 0) {
-		send_error(SensorMultichannelGas_failed_to_start);
 		Serial.println("Multichannel Gas Sensor failed to start");
 		return false;
 	}
@@ -536,9 +597,8 @@ bool init_sensors() {
 	return true;
 }
 
-bool send_error(error_codes_t error) { // (TODO) gotta update with new method for transmitting data over gsm
-	// char *error_message = (char *)error; // this might not work
-	// gsm.tcpSend(error_message);
-	// Serial.println(error_message);
-	// return true;
+void init_LEDs() {
+	// Setting the pins connected to the LEDs as output pins
+	pinMode(LED_LOWBAT, OUTPUT);
+	pinMode(LED_WARMUPSENSORS_GSM, OUTPUT);
 }

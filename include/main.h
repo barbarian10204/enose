@@ -9,48 +9,45 @@
 #include <stdio.h>
 
 // Constants
-#define CHARACTERISTIC_UUID "19b10001-e8f2-537e-4f6c-d104768a1214" 
-/* The characteristic UUID for
-	the emitter device
+#define CHARACTERISTIC_UUID "19b10001-e8f2-537e-4f6c-d104768a1214" // (should be different for each device)
+/* The characteristic UUID for the emitter device.
+
+	Note: Note: Should be different for each device.
 */
-#define SERVICE_UUID "19b10000-e8f2-537e-4f6c-d104768a1214" 
-/* The service UUID for the emitter control
+#define SERVICE_UUID "19b10000-e8f2-537e-4f6c-d104768a1214"
+/* The service UUID for the emitter control.
+
+	Note: Should be different for each device.
 */
-#define DEVICE_ID "EnoseDevice001" // Unique device ID for this Enose device
+#define DEVICE_ID "EnoseDevice001"
+/* Unique device ID for this Enose device.
+
+	Note: Should be different for each device.
+*/
 
 #define SIM800_RST_PIN 19 // GPIO pin connected to SIM800L reset pin
 
-typedef enum {
-	SensorBME680_failed_to_start,
-	SensorBME680_failed_to_read,
-	SensorSGP41_failed_to_start,
-	SensorSGP41_failed_to_read,
-	SensorMultichannelGas_failed_to_start,
-	// SensorMultichannelGas_failed_to_read, // We cannot really tell if this sensors fails to read
-	Emmiter_not_found,
-	Enose_power_critical,
-	Emmiter_power_critical,
-	BLE_connection_failed,
-	BLE_send_failed
-} error_codes_t;
+#define LED_WARMUPSENSORS_GSM 23     // Wamrup period indicator and GSM signal status LED pin
+#define LED_LOWBAT 24  // Low battery status LED pin
 
-typedef struct {
-	float temp;
-	float preasure;
-	float c;
-	float d;
-	int e;
-	int f;
-	int g;
-	int h;
-	int i;
-	int j;
-} all_sensors_data_t;
+// The PCB has two additional LEDs not controlled by the program, but by the charger IC:
+// LED1: Battery charger STATUS LED pin (turns on during charging)
+// LED2: Battery charger FAULT LED pin (turns on if anything goes wrong with the charger IC)
 
 const char APN[] = "www.internet.mtelia.dk";
 const char URLPOST[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data";
 const char URLGET[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data/emitter";
 const char CONTENT_TYPE[] = "application/json";
+
+// Constructors
+// Constructors: GSM objects
+SIM800L* sim800l;
+HardwareSerial GSMserial(1); // RX, TX
+
+// Constructors: Sensor objects
+GAS_GMXXX<TwoWire> gasSensor;
+Seeed_BME680 bme680(uint8_t(0x76));
+SensirionI2CSgp41 sgp41;
 
 /* == Function prototypes == */
 
@@ -60,7 +57,7 @@ const char CONTENT_TYPE[] = "application/json";
 bool init_GSM();       			// initialises the GSM module
 bool init_bluetooth(); 			// initialises the bluetooth module
 bool init_sensors();   			// initialises the sensors
-bool send_error(error_codes_t); // sends the error code to server
+void init_LEDs();   			// Sets the LED indicator pins to output
 
 /* Function prototypes: Main functions
 
@@ -98,4 +95,10 @@ bool send_gsm_payload(String jsonPayload); // SECONDARY FUNCTION (called by GasD
 bool ControlBytesGET(); // PRIMARY FUNCTION
 /* Retrieves control bytes from server using GSM to control the emitters.
 	The control bytes are stored in the global variable emitterBytes[8].
+*/
+
+bool SensorsWarmup(); // PRIMARY FUNCTION
+/* Reads all the gas sensors once. Can be called in a loop (1 second apart) 
+	to warm up the sensors. The function requests readings from the sensor
+	continuously for 15 minutes.
 */
