@@ -8,6 +8,7 @@ BLECharacteristic emittersCharacteristic;
 BLEDevice peripheral;
 
 long unsigned int start = 0; // timer for sensor readings
+const unsigned long SENSOR_INTERVAL_MS = 5000; // desired time between sensor readings
 
 void setup() {
 	// =======FOR TESTING REMOVRE LATER =======
@@ -17,34 +18,45 @@ void setup() {
 	while (!Serial) {
 		; // wait for serial port to connect. Needed so we don't miss any prints
 	}
-	// (TODO) remove this because it's will make the program stuck here if we are not connected to serial monitor
+	// (TODO) remove this because it'll make the program stuck here if we are not connected to serial monitor
 
 	start = millis();
 
+	init_ADC();
 	init_LEDs();
-	// init_sensors();
-	init_bluetooth();
-	// init_GSM();
-	// SensorsWarmup();
+    //init_sensors();
+	//init_bluetooth();
+	//init_GSM();
+	//sensors_warmup();
 }
 
 // Main loop
 void loop() {
+	unsigned long cycle_start = millis(); // starting timer for consistent interval between readings
+	// === TIMER START ===
+
 	Serial.println();
 
-	// GasDataPOST();
-
-	// ControlBytesGET();
-
-	BluetoothToEmitters();
+	digitalWrite(LED_WARMUPSENSORS_GSM, HIGH); // indicate GSM activity
+	//GasDataPOST();
+	digitalWrite(LED_WARMUPSENSORS_GSM, LOW); // indicate GSM activity
+	//ControlBytesGET();
+	digitalWrite(LED_WARMUPSENSORS_GSM, HIGH); // indicate GSM activity
+	//BluetoothToEmitters();
 
 	// (TODO) implement battery check here and put everything to sleep mode if it's low and turn on low battery LED
 	// the function could be just putting everythign apart from gas sensors to sleep, turning off bluetooth and gsm
 	// and then go into a loop that keeps checking battery level every 1 minute or so to see if we can wake up again
 
-	// (TODO) doesn't have to be here but just do smth with the other LEDs
+	CheckBattery();
 
-	delay(1000); // (TODO) Replace with a dynamic timer for consistent time between sensor readings
+	// === TIMER END ===
+	unsigned long elapsed = millis() - cycle_start;
+	Serial.print("Cycle time (ms): "); // for testing , remove later
+	Serial.println(elapsed); // for testing , remove later
+	if (elapsed < SENSOR_INTERVAL_MS) {
+		delay(SENSOR_INTERVAL_MS - elapsed);
+	}
 }
 
 // Functions Definitions
@@ -389,7 +401,7 @@ bool ControlBytesGET() {
 	return true;
 }
 
-bool SensorsWarmup() {
+bool sensors_warmup() {
 	digitalWrite(LED_WARMUPSENSORS_GSM, HIGH); // indicate warmup period with LED
 
 	for(int i = 0; i < 900; i++) { // 15 minutes of warmup at 1 reading per second
@@ -457,6 +469,17 @@ bool SensorsWarmup() {
 
 	Serial.print("Warmup complete.");
 	return true;
+}
+
+void CheckBattery() {
+	int battery_voltage = analogReadMilliVolts(ADC_PIN)*2; // multiply by 2 because of voltage divider
+	Serial.print("Battery voltage (mV): ");
+	Serial.println(battery_voltage);
+	if (battery_voltage < LOW_BATTERY_THRESHOLD) {
+		digitalWrite(LED_LOWBAT_ERRORS, HIGH); // turn on low battery LED
+	} else {
+		digitalWrite(LED_LOWBAT_ERRORS, LOW); // turn off low battery LED
+	}
 }
 
 // Functions Definitions: Init functions
@@ -599,6 +622,11 @@ bool init_sensors() {
 
 void init_LEDs() {
 	// Setting the pins connected to the LEDs as output pins
-	pinMode(LED_LOWBAT, OUTPUT);
+	pinMode(LED_LOWBAT_ERRORS, OUTPUT);
 	pinMode(LED_WARMUPSENSORS_GSM, OUTPUT);
+}
+
+void init_ADC() {
+	adcAttachPin(ADC_PIN);
+	analogSetPinAttenuation(ADC_PIN, ADC_ATTENUATION);
 }

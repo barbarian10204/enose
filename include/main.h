@@ -24,11 +24,15 @@
 
 	Note: Should be different for each device.
 */
-
+//SIM800L rest pin
 #define SIM800_RST_PIN 19 // GPIO pin connected to SIM800L reset pin
-
+//LEDs
 #define LED_WARMUPSENSORS_GSM 23     // Wamrup period indicator and GSM signal status LED pin
-#define LED_LOWBAT 24  // Low battery status LED pin
+#define LED_LOWBAT_ERRORS 24  // Low battery status and error indicator LED pin
+//ADC
+#define ADC_PIN 18  // ADC pin for battery voltage reading
+#define ADC_ATTENUATION ADC_11db // Attenuation for ADC reading (11db for full range 3.3V)
+#define LOW_BATTERY_THRESHOLD 3200 // Low battery threshold in millivolts
 
 // The PCB has two additional LEDs not controlled by the program, but by the charger IC:
 // LED1: Battery charger STATUS LED pin (turns on during charging)
@@ -58,6 +62,7 @@ bool init_GSM();       			// initialises the GSM module
 bool init_bluetooth(); 			// initialises the bluetooth module
 bool init_sensors();   			// initialises the sensors
 void init_LEDs();   			// Sets the LED indicator pins to output
+void init_ADC();				// initializes ADC for battery voltage reading
 
 /* Function prototypes: Main functions
 
@@ -97,8 +102,12 @@ bool ControlBytesGET(); // PRIMARY FUNCTION
 	The control bytes are stored in the global variable emitterBytes[8].
 */
 
-bool SensorsWarmup(); // PRIMARY FUNCTION
-/* Reads all the gas sensors once. Can be called in a loop (1 second apart) 
-	to warm up the sensors. The function requests readings from the sensor
+void CheckBattery(); // PRIMARY FUNCTION
+/* Reads battery voltage using ADC and sets low battery LED if voltage is 
+	below threshold.
+*/
+
+bool sensors_warmup(); // SECONDARY FUNCTION (called in setup)
+/* Requests readings from the sensor at 1 Hz rate to allow sensors to warm up. Runs
 	continuously for 15 minutes.
 */
