@@ -8,7 +8,7 @@ BLECharacteristic emittersCharacteristic;
 BLEDevice peripheral;
 
 long unsigned int start = 0; // timer for sensor readings
-const unsigned long SENSOR_INTERVAL_MS = 5000; // desired time between sensor readings
+const unsigned long SENSOR_INTERVAL_MS = 7000; // desired time between sensor readings
 
 uint8_t emitterCounter = 0; // counter for controlling emitter activation frequency (every 3 cycles)
 
