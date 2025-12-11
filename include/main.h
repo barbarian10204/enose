@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 // Constants
+// Constants: Bluetooth UUIDs and Device ID
 #define CHARACTERISTIC_UUID "19b10001-e8f2-537e-4f6c-d104768a1214" // (should be different for each device)
 /* The characteristic UUID for the emitter device.
 
@@ -24,12 +25,17 @@
 
 	Note: Should be different for each device.
 */
+
+// Constants: Pin definitions
 //SIM800L rest pin
 #define SIM800_RST_PIN 19 // GPIO pin connected to SIM800L reset pin
-//LEDs
-#define LED_WARMUPSENSORS_GSM 23     // Wamrup period indicator and GSM signal status LED pin
-#define LED_LOWBAT_ERRORS 24  // Low battery status and error indicator LED pin
-//ADC
+// LED Indicator Pins
+#define LED_WARMUPSENSORS_GSM 23 // pin for blue LED
+/*	Indicates sensor warmup period and GSM activity for POST and GET requests
+*/
+#define LED_LOWBAT_ERRORS 24
+/*	Low battery status and error indicator LED pin
+*/
 #define ADC_PIN 18  // ADC pin for battery voltage reading
 #define ADC_ATTENUATION ADC_11db // Attenuation for ADC reading (11db for full range 3.3V)
 #define LOW_BATTERY_THRESHOLD 3200 // Low battery threshold in millivolts
@@ -38,6 +44,7 @@
 // LED1: Battery charger STATUS LED pin (turns on during charging)
 // LED2: Battery charger FAULT LED pin (turns on if anything goes wrong with the charger IC)
 
+// Constants: GSM and Server parameters
 const char APN[] = "www.internet.mtelia.dk";
 const char URLPOST[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data";
 const char URLGET[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data/emitter";
@@ -66,7 +73,7 @@ void init_ADC();				// initializes ADC for battery voltage reading
 
 /* Function prototypes: Main functions
 
-	Note: Primary functions are called directly in the main loop
+	Note: Primary functions are called directly in the main loop or setup
 	Secondary functions are called by primary functions
 */
 
