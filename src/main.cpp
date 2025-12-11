@@ -27,9 +27,9 @@ void setup() {
 	init_ADC();
 	init_LEDs();
     init_sensors();
+	//sensors_warmup();
 	init_bluetooth();
 	init_GSM();
-	//sensors_warmup();
 }
 
 // Main loop
@@ -55,6 +55,8 @@ void loop() {
 	digitalWrite(LED_WARMUPSENSORS_GSM, HIGH); // indicate GSM activity
 	
 	BluetoothToEmitters();
+
+	CheckBattery();
 
 	// === TIMER END ===
 	unsigned long elapsed = millis() - cycle_start;
@@ -422,9 +424,6 @@ bool ControlBytesGET() {
 		Serial.print("] = ");
 		Serial.println(emitterBytes[i]);
 	}
-
-	// (TODO) make emitters only turn on every once in a while if they get the same emitter control bytes
-	// also if connection with web server is lost, turn emitters off
 	
 	return true;
 }
