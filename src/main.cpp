@@ -10,6 +10,8 @@ BLEDevice peripheral;
 long unsigned int start = 0; // timer for sensor readings
 const unsigned long SENSOR_INTERVAL_MS = 5000; // desired time between sensor readings
 
+uint8_t emitterCounter = 0; // counter for controlling emitter activation frequency (every 3 cycles)
+
 void setup() {
 	// =======FOR TESTING REMOVRE LATER =======
 	Serial.begin(9600);
@@ -24,9 +26,9 @@ void setup() {
 
 	init_ADC();
 	init_LEDs();
-    //init_sensors();
-	//init_bluetooth();
-	//init_GSM();
+    init_sensors();
+	init_bluetooth();
+	init_GSM();
 	//sensors_warmup();
 }
 
@@ -38,17 +40,21 @@ void loop() {
 	Serial.println();
 
 	digitalWrite(LED_WARMUPSENSORS_GSM, HIGH); // indicate GSM activity
-	//GasDataPOST();
+
+	GasDataPOST();
+
 	digitalWrite(LED_WARMUPSENSORS_GSM, LOW); // indicate GSM activity
-	//ControlBytesGET();
+
+	if (!ControlBytesGET()){
+		// Clear emitterBytes if GET fails
+		for (uint8_t i = 0; i < 8; i++) {
+			emitterBytes[i] = 0;
+		}
+	}
+
 	digitalWrite(LED_WARMUPSENSORS_GSM, HIGH); // indicate GSM activity
-	//BluetoothToEmitters();
-
-	// (TODO) implement battery check here and put everything to sleep mode if it's low and turn on low battery LED
-	// the function could be just putting everythign apart from gas sensors to sleep, turning off bluetooth and gsm
-	// and then go into a loop that keeps checking battery level every 1 minute or so to see if we can wake up again
-
-	CheckBattery();
+	
+	BluetoothToEmitters();
 
 	// === TIMER END ===
 	unsigned long elapsed = millis() - cycle_start;
@@ -341,6 +347,10 @@ bool ControlBytesGET() {
 		// Failed...
 		Serial.print(F("HTTP GET error "));
 		Serial.println(rc);
+		if (rc > 700){
+			sim800l->reset();
+			Serial.println(F("SIM800 reset due to GET error"));
+		}
 		return false;
 	}
 
@@ -350,6 +360,8 @@ bool ControlBytesGET() {
 	// Parse JSON and extract the 8 values into emitterBytes array
 	// Expected format: {"0":value0,"1":value1,...,"7":value7}
 	// Where each value is an integer between 0 and 255
+	uint8_t tempEmitterBytes[8]; // temporary storage for received values
+	
 	for (uint8_t i = 0; i < 8; i++) {
 		String key = "\"" + String(i) + "\":";
 		int keyIndex = received.indexOf(key);
@@ -375,16 +387,31 @@ bool ControlBytesGET() {
 			String valueStr = received.substring(valueStart, valueEnd);
 			int value = valueStr.toInt();
 			
-			// Clamp value to 0-255 range and assign to emitterBytes
+			// Clamp value to 0-255 range and assign to temp array
 			if (value < 0) value = 0;
 			if (value > 255) value = 255;
-			emitterBytes[i] = (uint8_t)value;
-
-			Serial.println("Parsed emitter byte " + String(i) + ": " + String(emitterBytes[i]));
+			tempEmitterBytes[i] = (uint8_t)value;
 		} else {
 			// Key not found, set to 0 as default
-			emitterBytes[i] = 0;
+			tempEmitterBytes[i] = 0;
 			Serial.println("Key " + String(i) + " not found in JSON, setting to 0");
+		}
+	}
+	
+	// Increment counter
+	emitterCounter++;
+	
+	// Only apply emitter bytes every 3rd cycle
+	if (emitterCounter >= 3) {
+		// Apply the received values to emitterBytes
+		for (uint8_t i = 0; i < 8; i++) {
+			emitterBytes[i] = tempEmitterBytes[i];
+		}
+		emitterCounter = 0; // Reset counter
+	} else {
+		// Clear emitterBytes on cycles 1 and 2
+		for (uint8_t i = 0; i < 8; i++) {
+			emitterBytes[i] = 0;
 		}
 	}
 	
@@ -397,6 +424,7 @@ bool ControlBytesGET() {
 	}
 
 	// (TODO) make emitters only turn on every once in a while if they get the same emitter control bytes
+	// also if connection with web server is lost, turn emitters off
 	
 	return true;
 }
@@ -471,15 +499,17 @@ bool sensors_warmup() {
 	return true;
 }
 
-void CheckBattery() {
+bool CheckBattery() {
 	int battery_voltage = analogReadMilliVolts(ADC_PIN)*2; // multiply by 2 because of voltage divider
 	Serial.print("Battery voltage (mV): ");
 	Serial.println(battery_voltage);
 	if (battery_voltage < LOW_BATTERY_THRESHOLD) {
 		digitalWrite(LED_LOWBAT_ERRORS, HIGH); // turn on low battery LED
+		return false;
 	} else {
 		digitalWrite(LED_LOWBAT_ERRORS, LOW); // turn off low battery LED
 	}
+	return true;
 }
 
 // Functions Definitions: Init functions
@@ -492,7 +522,10 @@ bool init_GSM() {
 	// Initialize SIM800L driver with an internal buffer of 200 bytes and a reception buffer of 512 bytes, debug disabled
 	sim800l = new SIM800L((Stream *)&GSMserial, SIM800_RST_PIN, 200, 512);
 
-		// Wait until the module is ready to accept AT commands
+	sim800l->reset();
+	delay(3000);
+
+	// Wait until the module is ready to accept AT commands
 	while(!sim800l->isReady()) {
 		Serial.println(F("Problem to initialize AT command, retry in 1 sec"));
 		delay(1000);

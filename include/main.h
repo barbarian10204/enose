@@ -102,7 +102,7 @@ bool ControlBytesGET(); // PRIMARY FUNCTION
 	The control bytes are stored in the global variable emitterBytes[8].
 */
 
-void CheckBattery(); // PRIMARY FUNCTION
+bool CheckBattery(); // PRIMARY FUNCTION
 /* Reads battery voltage using ADC and sets low battery LED if voltage is 
 	below threshold.
 */
