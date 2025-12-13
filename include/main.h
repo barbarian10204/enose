@@ -33,7 +33,7 @@
 #define LED_WARMUPSENSORS_GSM 23 // pin for blue LED
 /*	Indicates sensor warmup period and GSM activity for POST and GET requests
 */
-#define LED_LOWBAT_ERRORS 24
+#define LED_LOWBAT_ERRORS 24 // pin for red LED
 /*	Low battery status and error indicator LED pin
 */
 #define ADC_PIN 18  // ADC pin for battery voltage reading

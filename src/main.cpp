@@ -14,13 +14,7 @@ uint8_t emitterCounter = 0; // counter for controlling emitter activation freque
 
 void setup() {
 	// =======FOR TESTING REMOVRE LATER =======
-	Serial.begin(9600);
 	Wire.begin();
-
-	while (!Serial) {
-		; // wait for serial port to connect. Needed so we don't miss any prints
-	}
-	// (TODO) remove this because it'll make the program stuck here if we are not connected to serial monitor
 
 	start = millis();
 
@@ -53,7 +47,17 @@ void loop() {
 	}
 
 	digitalWrite(LED_WARMUPSENSORS_GSM, HIGH); // indicate GSM activity
-	
+
+	// // Manually testing emitters
+	// emitterBytes[0] = 0;
+	// emitterBytes[1] = 0;
+	// emitterBytes[2] = 0; 
+	// emitterBytes[3] = 200;
+	// emitterBytes[4] = 0;
+	// emitterBytes[5] = 0;
+	// emitterBytes[6] = 0;
+	// emitterBytes[7] = 0; 
+
 	BluetoothToEmitters();
 
 	CheckBattery();
@@ -515,7 +519,7 @@ bool CheckBattery() {
 bool init_GSM() {
 
 	// Initialize the hardware GSMserial
-	GSMserial.begin(9600, SERIAL_8N1, 9, 8);
+	GSMserial.begin(9600, SERIAL_8N1, 0, 1);
 	delay(1000);
 	
 	// Initialize SIM800L driver with an internal buffer of 200 bytes and a reception buffer of 512 bytes, debug disabled
