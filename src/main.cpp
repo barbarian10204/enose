@@ -21,7 +21,7 @@ void setup() {
 	init_ADC();
 	init_LEDs();
     init_sensors();
-	//sensors_warmup();
+	// sensors_warmup();
 	init_bluetooth();
 	init_GSM();
 }
@@ -509,7 +509,7 @@ bool CheckBattery() {
 	if (battery_voltage < LOW_BATTERY_THRESHOLD) {
 		digitalWrite(LED_LOWBAT_ERRORS, HIGH); // turn on low battery LED
 		return false;
-	} else {
+	} else if (battery_voltage >= (LOW_BATTERY_THRESHOLD + 150)){
 		digitalWrite(LED_LOWBAT_ERRORS, LOW); // turn off low battery LED
 	}
 	return true;
