@@ -38,7 +38,7 @@
 */
 #define ADC_PIN 18  // ADC pin for battery voltage reading
 #define ADC_ATTENUATION ADC_11db // Attenuation for ADC reading (11db for full range 3.3V)
-#define LOW_BATTERY_THRESHOLD 3200 // Low battery threshold in millivolts
+#define LOW_BATTERY_THRESHOLD 3100 // Low battery threshold in millivolts
 
 // The PCB has two additional LEDs not controlled by the program, but by the charger IC:
 // LED1: Battery charger STATUS LED pin (turns on during charging)
