@@ -144,9 +144,7 @@ bool GasDataPOST() {
 }
 
 bool send_gsm_payload(String jsonPayload) {
-    const char CONTENT_TYPE[] = "application/json";
-
-    // Convert String → char buffer
+    // Convert String to char buffer
     int len = jsonPayload.length();
     char payloadChar[len + 1];
     jsonPayload.toCharArray(payloadChar, len + 1);
