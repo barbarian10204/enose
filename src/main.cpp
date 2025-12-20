@@ -1,17 +1,5 @@
 #include "main.h"
 
-// Global variables
-uint8_t emitterBytes[8] = {0, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
-
-bool peripheral_Flag = false;  // flag to indicate if peripheral is connected
-BLECharacteristic emittersCharacteristic;
-BLEDevice peripheral;
-
-long unsigned int start = 0; // timer for sensor readings
-const unsigned long SENSOR_INTERVAL_MS = 7000; // desired time between sensor readings
-
-uint8_t emitterCounter = 0; // counter for controlling emitter activation frequency (every 3 cycles)
-
 void setup() {
 	// =======FOR TESTING REMOVRE LATER =======
 	Wire.begin();
@@ -257,18 +245,15 @@ bool control_emitters(BLEDevice peripheral) {
 		}
 
 		// retrieve the Emitter characteristic
-		emittersCharacteristic =
-		    peripheral.characteristic(CHARACTERISTIC_UUID);
+		emittersCharacteristic = peripheral.characteristic(CHARACTERISTIC_UUID);
 
 		if (!emittersCharacteristic) {
-			Serial.println(
-			    "Peripheral does not have Emitter characteristic!");
+			Serial.println("Peripheral does not have Emitter characteristic!");
 			peripheral_Flag = false;
 			peripheral.disconnect();
 			return false;
 		} else if (!emittersCharacteristic.canWrite()) {
-			Serial.println("Peripheral does not have a writable "
-				       "Emitter characteristic!");
+			Serial.println("Peripheral does not have a writable ""Emitter characteristic!");
 			peripheral_Flag = false;
 			peripheral.disconnect();
 			return false;

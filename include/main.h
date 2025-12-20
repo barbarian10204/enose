@@ -50,6 +50,18 @@ const char URLPOST[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/se
 const char URLGET[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data/emitter";
 const char CONTENT_TYPE[] = "application/json";
 
+// Constants: Other parameters
+const unsigned long SENSOR_INTERVAL_MS = 7000; // desired time between sensor readings
+
+// Global Variables
+uint8_t emitterBytes[8] = {0, 0, 0, 0, 0, 0, 0, 0}; // <-- control bytes for emitters (0..255)
+
+bool peripheral_Flag = false;  // flag to indicate if peripheral is connected
+
+long unsigned int start = 0; // timer for sensor readings
+
+uint8_t emitterCounter = 0; // counter for controlling emitter activation frequency (currently designed for every 3 GET-request cycles)
+
 // Constructors
 // Constructors: GSM objects
 SIM800L* sim800l;
@@ -59,6 +71,10 @@ HardwareSerial GSMserial(1); // RX, TX
 GAS_GMXXX<TwoWire> gasSensor;
 Seeed_BME680 bme680(uint8_t(0x76));
 SensirionI2CSgp41 sgp41;
+
+// Constructors: Bluetooth objects
+BLECharacteristic emittersCharacteristic;
+BLEDevice peripheral;
 
 /* == Function prototypes == */
 
