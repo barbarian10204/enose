@@ -7,10 +7,15 @@ void setup() {
 	start = millis();
 
 	init_ADC();
+	Serial.println("ADC-Initialized");
 	init_LEDs();
+	Serial.println("LEDs-Initialized");
     init_sensors();
-	// sensors_warmup();
+	Serial.println("Gas Sensors-Initialized");
+	//sensors_warmup();
+	//Serial.println("Sensors-Warmed Up");
 	init_bluetooth();
+	Serial.println("Bluetooth-Initialized");
 	init_GSM();
 }
 
@@ -529,9 +534,25 @@ bool init_GSM() {
 	Serial.println(F(")"));
 	delay(1000);
 
+	// Check SIM card status and IMSI
+	Serial.print(F("SIM Status: "));
+	Serial.println(sim800l->getSimStatus());
+	Serial.print(F("SIM Card Number (CCID): "));
+	Serial.println(sim800l->getSimCardNumber());
+
 	// Wait for operator network registration (national or roaming network)
 	NetworkRegistration network = sim800l->getRegistrationStatus();
+	uint8_t regAttempts = 0;
 	while(network != REGISTERED_HOME && network != REGISTERED_ROAMING) {
+		Serial.print(F("Reg status="));
+		Serial.print(network);
+		Serial.print(F(" SIM="));
+		Serial.print(sim800l->getSimStatus());
+		Serial.print(F(" CSQ="));
+		Serial.println(sim800l->getSignal());
+		if (++regAttempts % 15 == 0) {
+			Serial.println(F("Still trying to register..."));
+		}
 		delay(1000);
 		network = sim800l->getRegistrationStatus();
 	}

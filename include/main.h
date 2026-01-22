@@ -45,10 +45,10 @@
 // LED2: Battery charger FAULT LED pin (turns on if anything goes wrong with the charger IC)
 
 // Constants: GSM and Server parameters
-const char APN[] = "www.internet.mtelia.dk";
-const char URLPOST[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data";
-const char URLGET[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data/emitter";
-const char CONTENT_TYPE[] = "application/json";
+const char APN[] = "www.internet.mtelia.dk"; // Access Point Name for GPRS connectivity
+const char URLPOST[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data"; // URL for POST requests to send sensor data
+const char URLGET[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data/emitter"; // URL for GET requests to retrieve emitter control bytes
+const char CONTENT_TYPE[] = "application/json"; // Content type for HTTP POST requests
 
 // Constants: Other parameters
 const unsigned long SENSOR_INTERVAL_MS = 7000; // desired time between sensor readings
