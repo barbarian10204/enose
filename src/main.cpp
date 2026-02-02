@@ -213,11 +213,13 @@ bool BluetoothToEmitters() {
 		if (control_emitters(peripheral)) {
 			Serial.println("Emitter control successful");
 			peripheral_Flag = true;
+			digitalWrite(LED_BLUETOOTH_ACTIVITY, HIGH); // indicate Bluetooth activity
 			return true;
 		} else {
 			Serial.println("Peripheral disconnected");
 			BLE.scanForUuid(SERVICE_UUID); // restart scanning
 			peripheral_Flag = false;
+			digitalWrite(LED_BLUETOOTH_ACTIVITY, LOW); // indicate Bluetooth activity
 			return false;
 		}
 	}
@@ -664,6 +666,7 @@ void init_LEDs() {
 	// Setting the pins connected to the LEDs as output pins
 	pinMode(LED_LOWBAT_ERRORS, OUTPUT);
 	pinMode(LED_WARMUPSENSORS_GSM, OUTPUT);
+	pinMode(LED_BLUETOOTH_ACTIVITY, OUTPUT);
 }
 
 void init_ADC() {

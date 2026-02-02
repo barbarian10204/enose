@@ -36,6 +36,10 @@
 #define LED_LOWBAT_ERRORS 24 // pin for red LED
 /*	Low battery status and error indicator LED pin
 */
+#define LED_BLUETOOTH_ACTIVITY 9 // pin for green LED
+/*	Bluetooth activity indicator LED pin
+*/
+
 #define ADC_PIN 18  // ADC pin for battery voltage reading
 #define ADC_ATTENUATION ADC_11db // Attenuation for ADC reading (11db for 150 mV ~ 2450 mV input range)
 #define LOW_BATTERY_THRESHOLD 3100 // Low battery threshold in millivolts
