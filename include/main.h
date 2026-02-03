@@ -28,15 +28,15 @@
 
 // Constants: Pin definitions
 //SIM800L rest pin
-#define SIM800_RST_PIN 19 // GPIO pin connected to SIM800L reset pin
+#define SIM800_RST_PIN 19 // GPIO pin D19 connected to SIM800L reset pin
 // LED Indicator Pins
-#define LED_WARMUPSENSORS_GSM 23 // pin for blue LED
+#define LED_WARMUPSENSORS_GSM 23 // pin D23 for blue LED
 /*	Indicates sensor warmup period and GSM activity for POST and GET requests
 */
-#define LED_LOWBAT_ERRORS 24 // pin for red LED
+#define LED_LOWBAT_ERRORS 24 // pin D24 for red LED
 /*	Low battery status and error indicator LED pin
 */
-#define LED_BLUETOOTH_ACTIVITY 9 // pin for green LED
+#define LED_BLUETOOTH_ACTIVITY 6 // pin D6 for green LED
 /*	Bluetooth activity indicator LED pin
 */
 

@@ -6,8 +6,8 @@ void setup() {
 
 	start = millis();
 
-	init_ADC();
-	Serial.println("ADC-Initialized");
+	//init_ADC();
+	//Serial.println("ADC-Initialized");
 	init_LEDs();
 	Serial.println("LEDs-Initialized");
     init_sensors();
@@ -53,7 +53,7 @@ void loop() {
 
 	BluetoothToEmitters();
 
-	CheckBattery();
+	//CheckBattery();
 
 	// === TIMER END ===
 	unsigned long elapsed = millis() - cycle_start;
@@ -521,8 +521,10 @@ bool init_GSM() {
 	// Wait until the module is ready to accept AT commands
 	while(!sim800l->isReady()) {
 		Serial.println(F("Problem to initialize AT command, retry in 1 sec"));
+		digitalWrite(LED_LOWBAT_ERRORS, HIGH); // Error indication
 		delay(1000);
 	}
+	digitalWrite(LED_LOWBAT_ERRORS, LOW); // Error indication
 	Serial.println(F("Setup Complete!"));
 
 	// Wait for the GSM signal
@@ -554,11 +556,14 @@ bool init_GSM() {
 		Serial.println(sim800l->getSignal());
 		if (++regAttempts % 15 == 0) {
 			Serial.println(F("Still trying to register..."));
+			digitalWrite(LED_LOWBAT_ERRORS, HIGH); // Error indication
 		}
 		delay(1000);
+		digitalWrite(LED_LOWBAT_ERRORS, LOW); // Error indication
 		network = sim800l->getRegistrationStatus();
 	}
 	Serial.println(F("Network registration OK"));
+	digitalWrite(LED_LOWBAT_ERRORS, LOW); // Error indication
 	delay(1000);
 
 	// Setup APN for GPRS configuration
@@ -576,6 +581,7 @@ bool init_bluetooth() {
 	// initialize the Bluetooth® Low Energy hardware
 	if (!BLE.begin()) {
 		Serial.println("Failed to initialize BLE!");
+		digitalWrite(LED_LOWBAT_ERRORS, HIGH); // Error indication
 		return false;
 	}
 
