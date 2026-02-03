@@ -1,4 +1,3 @@
-
 #include "Multichannel_Gas_GMXXX.h" // Grove Multichannel Gas Sensor v2
 #include "SensirionI2CSgp41.h"	    // Seeed SGP41
 #include "seeed_bme680.h"	    // Seeed BME680
