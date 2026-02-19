@@ -12,17 +12,17 @@
 #define CHARACTERISTIC_UUID "19b10001-e8f2-537e-4f6c-d104768a1214" // (should be different for each device)
 /* The characteristic UUID for the emitter device.
 
-	Note: Note: Should be different for each device.
+	==Note: Should be different for each device.==
 */
 #define SERVICE_UUID "19b10000-e8f2-537e-4f6c-d104768a1214"
 /* The service UUID for the emitter control.
 
-	Note: Should be different for each device.
+	==Note: Should be different for each device.==
 */
 #define DEVICE_ID "EnoseDevice001"
 /* Unique device ID for this Enose device.
 
-	Note: Should be different for each device.
+	==Note: Should be different for each device.==
 */
 
 // Constants: Pin definitions
@@ -49,8 +49,8 @@
 
 // Constants: GSM and Server parameters
 const char APN[] = "www.internet.mtelia.dk"; // Access Point Name for GPRS connectivity
-const char URLPOST[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data"; // URL for POST requests to send sensor data
-const char URLGET[] = "http://outdated-acclimatable-leoma.ngrok-free.dev/api/sensor-data/emitter"; // URL for GET requests to retrieve emitter control bytes
+const char URLPOST[] = "http://34.78.58.4/api/sensor-data"; // URL for POST requests to send sensor data
+const char URLGET[] = "http://34.78.58.4/api/sensor-data/emitter"; // URL for GET requests to retrieve emitter control bytes
 const char CONTENT_TYPE[] = "application/json"; // Content type for HTTP POST requests
 
 // Constants: Other parameters

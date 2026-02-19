@@ -544,6 +544,11 @@ bool init_GSM() {
 	Serial.print(F("SIM Card Number (CCID): "));
 	Serial.println(sim800l->getSimCardNumber());
 
+	Serial.print(F("Module Version: "));
+	Serial.println(sim800l->getVersion());
+	Serial.print(F("Firmware Version: "));
+	Serial.println(sim800l->getFirmware());
+
 	// Wait for operator network registration (national or roaming network)
 	NetworkRegistration network = sim800l->getRegistrationStatus();
 	uint8_t regAttempts = 0;
